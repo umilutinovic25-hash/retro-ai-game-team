@@ -553,3 +553,8 @@ kbd {
   .shop-perk, .advisor-panel { align-items: stretch; flex-direction: column; }
   .shop-perk button, .advisor-panel button { width: 100%; }
 }
+
+/* Keep the key hints readable when the shop makes the control buttons wider. */
+.controls { flex-wrap: wrap; row-gap: 12px; }
+.controls p { flex: 1 1 240px; }
+.control-actions { flex-wrap: wrap; }

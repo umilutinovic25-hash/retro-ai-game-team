@@ -13,7 +13,7 @@ Read this module for changes to game behavior, state transitions, rendering, or 
 - Keep state transitions and game rules in pure TypeScript where practical.
 - The server owns authoritative game state and tick scheduling. UI controls send intended actions; the browser renders validated snapshots and never advances or mutates game state.
 - Keep randomness explicit/injectable in the game logic when needed for deterministic tests.
-- Keep DOM/CSS responsible for the board, controls, status, and responsive presentation. Do not move game rules into event handlers or rendering code.
+- Keep the Canvas renderer and DOM/CSS responsible for the board, controls, status, and responsive presentation; they only read server snapshots. Do not move game rules into event handlers or rendering code.
 - Preserve the existing module layout unless a scoped change requires otherwise. Avoid broad refactors made only to demonstrate a pattern.
 
 ## Runtime configuration

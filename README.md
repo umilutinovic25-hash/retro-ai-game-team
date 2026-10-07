@@ -132,3 +132,7 @@ Za promene prati obavezni workflow u `docs/instructions/05-workflow-tracking-and
 ## Shop Strategist (Week 5)
 
 U pauziranom shopu dugme **PLAN WITH AI** pokreće ograničen agentic run: model samo predlaže read-only alate (`get_shop_state`, `evaluate_perk_plan`, `get_recent_runs`), backend validira svaki predlog i rezultat, drži limite (5 koraka, 4 alata, 8 provider pokušaja, 45 s) i nikad ništa ne kupuje. Isti `GEMINI_API_KEY` iz runtime okruženja kao za shop advisor (vidi gore). Specifikacija, tokovi i ugovori: [specs/003-shop-agent](specs/003-shop-agent/spec.md). Brza provera bez ključa: `npm test`. Jedan live run: `AGENT_LIVE=1 npm run agent:live`.
+
+## Canvas izgled i klijentske opcije (Faza 1)
+
+Tabla se crta na Canvasu (neon tema, čestice, tween kretanja) iz server snapshota; server i dalje drži sva pravila. Tasteri: strelice smer · P/Space pauza · R nova igra · S shop · M zvuk · C colorblind režim; swipe radi na telefonu. Pri startu i nastavku igre ide odbrojavanje 3-2-1. Težine EASY/NORMAL/HARD menjaju brzinu i pokreću novu igru. Rekordi (top 10) i statistika čuvaju se lokalno u browseru. Specifikacija: [specs/004-best-game-phase1](specs/004-best-game-phase1/spec.md).

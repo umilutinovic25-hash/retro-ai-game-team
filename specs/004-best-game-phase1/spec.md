@@ -81,7 +81,7 @@ Generated sound effects (no audio files), a mute toggle, vibration on supported 
 **Rendering and adapter**
 
 - **FR-001**: `<canvas id="board">` replaces the DOM cell grid. The renderer is render-only and never mutates state or calls the API.
-- **FR-002**: A pure `snapshotAdapter` converts a `GameSnapshot` (and the previous one) into the renderer's state and a `moved` flag, and returns derived events (`ate`, `lucky`, `levelUp`, `died`, `purchase`). Missing Phase 2 entities are neutral values (no bonus, no obstacles, combo 1, no effects).
+- **FR-002**: A pure `snapshotAdapter` converts a `GameSnapshot` (and the previous one) into the renderer's state and a `moved` flag, and returns derived events (`ate`, `lucky`, `levelUp`, `died`, `won`, `purchase`). Missing Phase 2 entities are neutral values (no bonus, no obstacles, combo 1, no effects).
 - **FR-003**: `moved` is true only when the head position changed to an adjacent cell between consecutive snapshots of the same game; it is false on level-up, purchase, pause, reset and extra-life respawn.
 - **FR-004**: Tween duration is `getTickMs(config, score)` from shared code; no new server timing field is added.
 - **FR-005**: The renderer draws the Lucky pickup with a dedicated style and keeps the gold/gem and obstacle layers dormant but present.
@@ -91,7 +91,7 @@ Generated sound effects (no audio files), a mute toggle, vibration on supported 
 
 - **FR-007**: Sound is synthesized with Web Audio; no audio files or third-party assets. Mute is persisted locally.
 - **FR-008**: Records and stats are stored locally, treated as untrusted on read (shape, bounds, name sanitation) and rendered only through `textContent`.
-- **FR-009**: Input buffer, swipe, focus auto-pause, vibration, countdown and difficulty presets are client-side only and use the existing API (`move`, `pause`, `resume`, `restart`, `POST /api/games`).
+- **FR-009**: Input buffer, swipe, focus auto-pause, vibration, countdown and difficulty presets are client-side only and use the existing API (`move`, `pause`, `resume`, `restart`, `POST /api/games`). While the countdown runs the status chip reads GET READY. Keyboard: arrows, P/Space pause, R restart, S shop, M sound, C colors; WASD is not mapped because S is the shop key.
 - **FR-010**: Difficulty presets pass through the existing server-side `parseGameConfig` validation; the client never trusts its own presets as authoritative.
 
 **Page and compatibility**
@@ -107,7 +107,7 @@ Generated sound effects (no audio files), a mute toggle, vibration on supported 
 ### Key entities
 
 - **RenderState**: the modern renderer's state shape with Phase 2 fields neutral.
-- **RenderEvent**: `ate | lucky | levelUp | died | purchase` plus position and score delta.
+- **RenderEvent**: `ate | lucky | levelUp | died | won | purchase` plus position and score delta.
 - **ClientSettings**: mute, colorblind, difficulty, best score per difficulty (localStorage).
 - **Records**: top-10 entries and aggregate stats (localStorage, validated).
 

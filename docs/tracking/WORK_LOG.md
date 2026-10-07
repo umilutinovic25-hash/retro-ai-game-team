@@ -272,3 +272,13 @@ Append one concise entry for each substantive implementation, review, or documen
 - **Outcome:** spec drafted from an interactive design session (approach A: snapshot adapter in front of the renderer; countdown, difficulty presets and input buffer client-side).
 - **Verification:** documentation only; code checks not applicable.
 - **Limitations:** implementation plan not written; `AGENTS.md` contract change is a requirement (FR-014), not done yet.
+
+## 2026-10-07 — Best Game Phase 1 implemented
+
+- **Goal:** implement the approved spec and plan in `specs/004-best-game-phase1/`.
+- **Outcome:** snapshot adapter in front of the ported Canvas renderer (with a Lucky pickup layer), generated sound, local records and stats, difficulty presets, input buffer, countdown, swipe, colorblind mode, merged neon page with the team HUD, shop, advisor and Strategist, rewritten Canvas `main.ts`; `AGENTS.md`, `docs/INSTRUCTIONS.md`, architecture instructions, README and spec updated.
+- **Evidence:** [Evidence 015](evidence/EVIDENCE_015.md). No server or protocol change.
+- **Verification:** `npm run typecheck`, `npm test` (159/159, 40 new), `npm run build`, `npm run security:scan`, `npm run test:e2e` (12/12 incl. five new Canvas checks) all exit 0; screenshots reviewed.
+- **Rulings:** `won` event added; WASD not mapped (S is the shop key); `GET READY` status during the countdown; difficulty only when not playing; SC-004 checked against `7e92b6f`.
+- **Limitations:** a human has not yet played it; the Lucky visual and phone swipe were not observed; Phase 2 not started.
+- **Next step:** the user plays it; then the final review, and a decision about publishing or Phase 2.

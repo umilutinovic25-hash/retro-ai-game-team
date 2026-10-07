@@ -31,6 +31,7 @@ The precedence for product behavior is: current user request → `AGENTS.md` pro
 | Base game specification | [`specs/BASE_GAME_SPEC.md`](specs/BASE_GAME_SPEC.md) | Existing core rules, configuration, Definition of Done, and base-game scope |
 | XP, perks, and Lucky pickup feature | [`../specs/001-powerups-perks/`](../specs/001-powerups-perks/) | Phase 1 requirements, plan, data model, API contract, quickstart, and tasks; see Evidence 006–007 for implementation status |
 | Shop AI Advisor feature | [`../specs/002-shop-advisor/`](../specs/002-shop-advisor/) | Shop advice specification, model research, contract, implementation plan, quickstart, and tasks |
+| Best Game Phase 1 | [`../specs/004-best-game-phase1/`](../specs/004-best-game-phase1/) | Canvas visuals and client features on the server-authoritative game |
 | Server refactor plan | [`specs/REFACTOR_PLAN.md`](specs/REFACTOR_PLAN.md) | Accepted client/server architecture, task checklist, and validation record |
 | Shop state contract | [`specs/TOOL_CONTRACT.md`](specs/TOOL_CONTRACT.md) | Read-only shop context, structured decision, and failure policy |
 | Gemini shop advisor plan | [`specs/GEMINI_HINT_CHANGES_V2.md`](specs/GEMINI_HINT_CHANGES_V2.md) | Current approved model chain, telemetry, retry/fallback policy, tasks, and acceptance criteria |
