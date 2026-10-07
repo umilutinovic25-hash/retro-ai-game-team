@@ -29,6 +29,12 @@ test("the board is a canvas and the page keeps its controls", () => {
   assert.match(html, /<script type="module" src="\/src\/main\.ts"><\/script>/);
 });
 
+test("the board legend explains obstacle and score bonus symbols", () => {
+  assert.match(html, /OBSTACLE <b>HAZARD<\/b>/);
+  assert.match(html, /GOLD <b>\+3<\/b>/);
+  assert.match(html, /GEM <b>\+5<\/b>/);
+});
+
 test("the shop and the AI panels live inside the board frame", () => {
   const frame = /<div class="board-frame">([\s\S]*?)\n        <\/div>\n        <ul class="legend"/.exec(html)?.[1] ?? "";
   for (const id of ["perk-shop", "shop-advice-button", "shop-agent-button", "game-overlay", "countdown"]) {

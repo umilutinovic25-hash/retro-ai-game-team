@@ -26,6 +26,7 @@ type Session = {
   listeners: Set<(snapshot: GameSnapshot) => void>;
   history: RunHistoryEntry[];
   runRecorded: boolean;
+  runNumber: number;
 };
 
 export type SessionErrorCode = "game_not_found" | "invalid_status" | "insufficient_perk_points" | "perk_at_cap";
@@ -45,6 +46,21 @@ export type RunHistoryEntry = {
   level: number;
   perksAtEnd: { extraXp: number; luck: number; extraLife: number };
   endedBy: "game_over" | "won" | "restart";
+};
+
+export type GameCoachContext = {
+  runNumber: number;
+  mode: "classic" | "vs_ai";
+  difficulty: "easy" | "normal" | "hard";
+  score: number;
+  level: number;
+  snakeLength: number;
+  foodEaten: number;
+  bonusesCollected: number;
+  collisions: number;
+  rivalScore: number | null;
+  rivalAliveAtEnd: boolean | null;
+  endedBy: "game_over" | "won";
 };
 
 function cloneSnapshot(snapshot: GameSnapshot): GameSnapshot {
@@ -73,6 +89,7 @@ export class GameSessionManager {
       listeners: new Set(),
       history: [],
       runRecorded: false,
+      runNumber: 0,
     };
     this.sessions.set(session.id, session);
     return this.toSnapshot(session);
@@ -85,6 +102,28 @@ export class GameSessionManager {
   /** Last finished games of this container, newest first (in memory, at most five). */
   getRunHistory(id: string): RunHistoryEntry[] {
     return structuredClone(this.requireSession(id).history);
+  }
+
+  getCoachContext(id: string): GameCoachContext {
+    const session = this.requireSession(id);
+    const state = session.gameState;
+    if (state.status !== "game_over" && state.status !== "won") {
+      throw new SessionError("invalid_status", "The AI coach is available only after a run ends.");
+    }
+    return {
+      runNumber: session.runNumber,
+      mode: session.config.mode,
+      difficulty: session.config.startingSpeedMs >= 200 ? "easy" : session.config.startingSpeedMs <= 125 ? "hard" : "normal",
+      score: state.score,
+      level: state.level,
+      snakeLength: state.snake.length,
+      foodEaten: state.foodEaten,
+      bonusesCollected: state.bonusesCollected,
+      collisions: state.collisions,
+      rivalScore: state.rival ? state.rival.score : null,
+      rivalAliveAtEnd: state.rival ? state.rival.alive : null,
+      endedBy: state.status,
+    };
   }
 
   subscribe(id: string, listener: (snapshot: GameSnapshot) => void): () => void {
@@ -139,6 +178,7 @@ export class GameSessionManager {
     const { status } = session.gameState;
     if (status === "playing" || status === "paused") this.recordRun(session, "restart");
     session.runRecorded = false;
+    session.runNumber += 1;
     session.gameState = createInitialState(session.config, this.random);
     this.publish(session);
     return this.toSnapshot(session);
@@ -199,7 +239,7 @@ export class GameSessionManager {
           extraLife: { charges: extraLives, nextCost: extraLives === 0 ? 5 : extraLives === 1 ? 8 : null },
         },
       }],
-      state: { food, luckyPickup, status },
+      state: { food, luckyPickup, bonus: session.gameState.bonus, obstacles: session.gameState.obstacles, rival: session.gameState.rival, status },
     });
   }
 

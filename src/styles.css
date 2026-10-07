@@ -165,6 +165,8 @@ h1 span {
 #status[data-state="game_over"] { color: var(--pink); border-color: rgba(255, 77, 109, 0.5); }
 #status[data-state="won"], #status[data-state="paused"] { color: var(--gold); border-color: rgba(255, 209, 102, 0.45); }
 #status[data-state="ready"] { color: var(--text); }
+.rival-score { color: #ff8ce5; border-color: rgba(255, 77, 210, 0.45); }
+.rival-score b { color: #fff0fb; margin-left: 4px; }
 
 .board-frame {
   --frame-a: #6d28d9;
@@ -329,6 +331,8 @@ h1 span {
   gap: 14px;
   padding: 24px;
   text-align: center;
+  max-height: 100%;
+  overflow-y: auto;
   background: radial-gradient(circle, rgba(7, 6, 26, 0.55), rgba(7, 6, 26, 0.85));
   backdrop-filter: blur(5px);
   animation: overlay-in 280ms ease-out;
@@ -348,6 +352,12 @@ h1 span {
 .game-overlay[data-state="game_over"] .overlay-title { color: #ffd6de; text-shadow: 0 0 24px rgba(255, 77, 109, 0.9); }
 .game-overlay[data-state="won"] .overlay-title, .game-overlay[data-state="paused"] .overlay-title { color: #fff3c4; text-shadow: 0 0 24px rgba(255, 209, 102, 0.8); }
 .overlay-message { max-width: 320px; margin: 0 auto; color: var(--muted); font-size: 0.72rem; font-weight: 700; line-height: 1.65; letter-spacing: 0.12em; }
+.coach-panel { width: min(100%, 360px); margin: 2px auto 0; padding: 12px 14px; border: 1px solid rgba(199, 125, 255, 0.35); border-radius: 14px; background: rgba(17, 12, 42, 0.85); box-shadow: 0 0 24px rgba(199, 125, 255, 0.12); }
+.coach-panel[hidden] { display: none; }
+.coach-headline { margin: 0 0 5px; color: var(--violet); font-size: 0.65rem; font-weight: 900; letter-spacing: 0.16em; }
+.coach-output { margin: 0 auto 10px; color: var(--text); font-size: 0.72rem; line-height: 1.55; }
+.coach-button { padding: 8px 12px; border: 1px solid rgba(199, 125, 255, 0.55); border-radius: 9px; color: #f1d9ff; background: rgba(123, 44, 191, 0.25); font-size: 0.62rem; font-weight: 900; letter-spacing: 0.12em; }
+.coach-button:disabled { cursor: wait; opacity: 0.55; }
 .overlay-button, .controls button, .hint-panel button {
   border: 0;
   border-radius: 12px;
@@ -384,6 +394,7 @@ h1 span {
 .swatch.food { background: radial-gradient(circle at 35% 35%, #ffd6de, var(--pink)); box-shadow: 0 0 10px var(--pink); }
 .swatch.gold { background: radial-gradient(circle at 35% 35%, #fff3c4, var(--gold) 50%, #c77c02); box-shadow: 0 0 10px var(--gold); }
 .swatch.gem { border-radius: 2px; transform: rotate(45deg) scale(0.85); background: linear-gradient(135deg, #e0fbff, var(--cyan), #7b2cbf); box-shadow: 0 0 10px var(--cyan); }
+.swatch.rival { background: radial-gradient(circle, #fff0fb 20%, #ff4dd2 55%, #a21caf); box-shadow: 0 0 10px #ff4dd2; }
 .swatch.slow { background: radial-gradient(circle, #0d1b4d 45%, #7cc6ff 50%); box-shadow: 0 0 10px #7cc6ff; }
 .swatch.ghost { border-radius: 6px 6px 2px 2px; background: #b794ff; box-shadow: 0 0 10px #b794ff; }
 [data-palette="colorblind"] .swatch.food { background: radial-gradient(circle, #fff 25%, #e69f00 30%); box-shadow: 0 0 10px #e69f00; }

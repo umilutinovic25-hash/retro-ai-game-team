@@ -644,6 +644,41 @@ export function createRenderer(canvas: HTMLCanvasElement, config: GameConfig): R
     g.restore();
   }
 
+  function drawRival(state: GameState): void {
+    const rival = state.rival;
+    if (!rival?.alive || rival.snake.length === 0) return;
+    const color = palette.hatch ? "#d55e00" : "#ff4dd2";
+    g.save();
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.shadowColor = color;
+    g.shadowBlur = cell * 0.75;
+    g.strokeStyle = `${color}88`;
+    g.lineWidth = cell * 0.68;
+    g.beginPath();
+    rival.snake.forEach((segment, index) => {
+      const p = center(segment);
+      if (index === 0) g.moveTo(p.x, p.y);
+      else g.lineTo(p.x, p.y);
+    });
+    g.stroke();
+    rival.snake.forEach((segment, index) => {
+      const p = center(segment);
+      const radius = cell * (index === 0 ? 0.37 : 0.29);
+      g.fillStyle = index === 0 ? "#fff0fb" : color;
+      g.beginPath();
+      g.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      g.fill();
+      if (index === 0) {
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(p.x, p.y, radius * 0.56, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+    g.restore();
+  }
+
   function drawHead(p: Point, direction: Direction, dead: boolean, ghost: boolean, time: number): void {
     const r = cell * 0.47;
     const angle = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }[direction];
@@ -826,6 +861,7 @@ export function createRenderer(canvas: HTMLCanvasElement, config: GameConfig): R
       if (curr.lucky) drawLucky(curr.lucky, time);
       drawBonus(curr, time);
       drawPowerUp(curr, time);
+      drawRival(curr);
       drawSnake(time);
       drawEffects(time, dt);
       g.restore();

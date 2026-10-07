@@ -2,6 +2,15 @@
 
 Append one concise entry for each substantive implementation, review, or documentation task. Every entry links the prompt/specification that guided the work and the evidence used or created. If there was no standalone prompt artifact, say so. Keep results factual and do not rewrite history.
 
+## 2026-10-07 — Add AI Coach and VS AI rival
+
+- **Goal / acceptance:** add the optional server-owned VS AI snake rival and an on-demand Gemini coach after a completed run, per [Feature 005](../specs/005-ai-coach-and-rival.md).
+- **Prompt/evidence:** [Build prompt v1](../prompts/AI_COACH_AND_RIVAL_V1.md); [Evidence 018](evidence/EVIDENCE_018.md).
+- **Starting state:** `0d54666` on `best-game-phase1`; pre-existing local obstacle/bonus changes in the working tree were preserved. Baseline suites were not run for this task.
+- **Implementation decision:** keep the rival outside the human `players` array and server-authoritative; keep Gemini calls post-run, opt-in, server-only, and read-only.
+- **Outcome:** added selectable Classic/VS AI mode, server-owned rival movement/scoring/rendering and final score comparison, plus an on-demand post-run coach endpoint and UI using the existing server-only Gemini provider chain. Feature boundaries and browser limitations are recorded in [Evidence 018](evidence/EVIDENCE_018.md).
+- **Verification:** typecheck, production build, security scan, and `git diff --check` passed. Browser inspection showed the rival, score/legend, selectable mode, completed-run tie screen, and coach panel. Automated tests and a live coach call were not run; the latter requires a backend runtime Gemini key.
+
 ## 2026-09-30 — Make the browser E2E portable and deterministic (PR #1 re-review)
 
 - **Goal:** address the PR #1 re-review: `spawn("npx")` fails on Windows, `stop()` did not wait for the real backend process (EADDRINUSE on 3001 before M6), fixed API port, and M5 skipped in a fresh run.
@@ -264,6 +273,19 @@ Append one concise entry for each substantive implementation, review, or documen
 - **Outcome:** user ran `AGENT_LIVE=1 npm run agent:live` with their own free-tier key: `completed`, 4 steps, 3 tool calls, 6 provider attempts, 24 717 ms; `gemini-3.8-flash` timed out twice (408) and the run fell back to `gemini-3.5-flash-lite`; plan `extra_xp, extra_xp` (3 of 3 points). Details in [Evidence 014](evidence/EVIDENCE_014.md).
 - **Limitations:** one run, one scenario, one answering model; browser check still pending. No key was read or stored by the assistant; the user's earlier mis-pasted value caused one `unauthorized` run that stopped safely.
 
+## 2026-10-07 — Confirm W05 Shop Strategist browser flow
+
+- **Goal:** close the manual browser verification gap for the Week 05 Shop Strategist.
+- **Outcome:** the user confirmed the running browser flow works: the Strategist displayed a plan and did not purchase a perk. This is recorded as user-reported evidence; no screenshot or independent E2E observation was captured.
+- **Evidence:** [Evidence 014](evidence/EVIDENCE_014.md). No code changes or automated checks were needed.
+
+## 2026-10-07 — Prepare Week 05 learner report
+
+- **Goal:** summarize the bounded Shop Strategist milestone for the learner's Week 05 report.
+- **Sources:** [Week 05 spec](../../specs/003-shop-agent/spec.md), [Evidence 014](evidence/EVIDENCE_014.md), [Evidence 017](evidence/EVIDENCE_017.md), and the existing Week 04 report format.
+- **Outcome:** drafted the Serbian report with the automated, live-provider, and browser checks recorded as complete; corrected the learner identity and contact fields to Uroš's Week 03 report: [Week 05 report](reports/WEEKLY_REPORT_week05.md).
+- **Verification:** `git diff --check` passed; report links and claims were reviewed against the cited records.
+
 ## 2026-10-07 — Best Game Phase 1 spec
 
 - **Goal:** merge the user's private `feature/modern-graphics` (Canvas renderer, sound, records, accessibility) into the team game, delivered in two phases; Phase 1 = visuals and client features with no server change.
@@ -292,3 +314,13 @@ Append one concise entry for each substantive implementation, review, or documen
 - **Outcome:** ready-state input now ignores the existing heading and locks the first accepted direction through the countdown/request; quick turns use `queuedDirection` for validity and the applied server heading to release the held turn; stale snapshots are gated during game initialization; active-game status survives failed requests and valid snapshots restore online state; records cancel the countdown; duplicate renderer snapshots preserve the current tween; Cmd/Ctrl/Alt shortcuts are left alone. Added unit and browser regressions and checked the Phase 1 follow-up cases.
 - **Verification:** `npm run typecheck` passed; `npm test` passed (170/170); `npm run build` passed; `npm run security:scan` passed; `git diff --check` passed; `npm run test:e2e` passed (18/18, including six added C6–C11 scenarios). Exact task evidence is in [Evidence 016](evidence/EVIDENCE_016.md).
 - **Limitations / next step:** no human visual animation review; the old-WebSocket race is covered by the init-gate unit tests and client integration, not a forced E2E race. Committed as `90f853a` and pushed to `fork/best-game-phase1` at the user's earlier push request shown in the screenshot; no PR was opened.
+
+## 2026-10-07 — Restore obstacles and score bonuses; check W05 live agent
+
+- **Goal / acceptance:** restore the earlier obstacle and bonus-score mechanics in the server-authoritative game; verify the W05 Strategist reaches a real Gemini run if its runtime key is configured.
+- **Starting state:** clean `best-game-phase1` at `0d54666`; baseline `npm test` passed 170/170. The active engine/protocol omitted these entities, and `snapshotAdapter` set obstacles/bonus to empty values.
+- **Context used:** user's restore request, prior implementation at `32a13c5`, current base game spec, server engine/protocol/session, Canvas adapter/renderer, project workflow/testing/security instructions, W05 spec and live smoke harness. Secret files and stores were not read.
+- **Outcome:** restored 4 safe starting obstacles plus score-milestone growth to 14, with connectivity and spawn-occupancy checks; restored 30%-chance timed gold (+3)/gem (+5) score bonuses; snapshots validate and deliver entities to Canvas; added hazard/bonus legend and focused tests. Updated [base game spec](../../specs/BASE_GAME_SPEC.md). Evidence: [Evidence 017](evidence/EVIDENCE_017.md).
+- **Verification:** typecheck passed; `npm test` passed (175/175); production build passed; security scan passed; browser suite passed (18/18); `git diff --check` passed. Local API returned a default snapshot with 4 obstacles and the bonus field.
+- **Week 5 live check:** after the initial environment-only probe, the user ran `AGENT_LIVE=1 npm run agent:live` with a replacement key entered through a hidden terminal prompt. The live harness completed 3 steps and 2 accepted read-only tool calls in 23,910 ms across 5 provider attempts. `gemini-3.8-flash` timed out twice (408); fallback `gemini-3.5-flash-lite` completed the plan (`extra_xp → luck`, cost 2 perk points, 1 left). No key value was recorded. An earlier 401 attempt used the old key that appeared in a screenshot; Evidence 017 records the exposure and revocation guidance.
+- **Status:** the W05 provider and agent loop are live and functional with the replacement key. The Phase 1 review findings were already closed in the preceding entry and Evidence 016; no additional game-code changes were needed for this verification.

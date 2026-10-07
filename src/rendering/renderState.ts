@@ -7,8 +7,9 @@ export type PowerUpKind = "slow" | "ghost";
 
 export type RenderBonus = { position: Point; kind: BonusKind; points: number; ticksLeft: number; lifetime: number };
 export type RenderPowerUp = { position: Point; kind: PowerUpKind; ticksLeft: number; lifetime: number };
+export type RenderRival = { snake: Point[]; direction: Direction; score: number; alive: boolean };
 
-/** What the Canvas renderer draws. Phase 2 entities are neutral until the engine and server provide them. */
+/** What the Canvas renderer draws. Power-up fields remain neutral until the engine and server support them. */
 export type RenderState = {
   snake: Point[];
   direction: Direction;
@@ -16,6 +17,7 @@ export type RenderState = {
   lucky: Point | null;
   bonus: RenderBonus | null;
   obstacles: Point[];
+  rival: RenderRival | null;
   score: number;
   status: GameStatus;
   combo: number;

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { GameSessionManager } from "../server/gameSession.ts";
 import { validateGameSnapshot } from "../src/game/gameProtocol.ts";
+import { DEFAULT_CONFIG } from "../src/game/snakeConfig.ts";
 
 test("snapshot protocol accepts authoritative snapshots and rejects malformed data", () => {
   const manager = new GameSessionManager(() => 0, () => "protocol-id");
@@ -14,6 +15,8 @@ test("snapshot protocol accepts authoritative snapshots and rejects malformed da
     extraLife: { charges: 0, nextCost: 5 },
   });
   assert.equal(snapshot.state.luckyPickup, null);
+  assert.equal(snapshot.state.obstacles.length, DEFAULT_CONFIG.obstacleStartCount);
+  assert.equal(snapshot.state.bonus, null);
 
   assert.equal(validateGameSnapshot({ ...snapshot, extra: "unexpected" }), null);
   const afterLuckyPickup = {
@@ -46,6 +49,14 @@ test("snapshot protocol accepts authoritative snapshots and rejects malformed da
   assert.equal(validateGameSnapshot({
     ...snapshot,
     players: [{ ...snapshot.players[0], snake: [{ x: -1, y: 3 }] }],
+  }), null);
+  assert.equal(validateGameSnapshot({
+    ...snapshot,
+    state: { ...snapshot.state, obstacles: [snapshot.players[0].snake[0]] },
+  }), null);
+  assert.equal(validateGameSnapshot({
+    ...snapshot,
+    state: { ...snapshot.state, bonus: { position: snapshot.state.food!, kind: "gem", points: 5, ticksLeft: 3, lifetime: DEFAULT_CONFIG.bonusLifetimeTicks } },
   }), null);
   manager.close();
 });

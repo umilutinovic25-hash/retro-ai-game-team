@@ -5,6 +5,7 @@ import { WebSocket } from "ws";
 import { createGameHttpServer } from "../server/httpServer.ts";
 import { GameSessionManager } from "../server/gameSession.ts";
 import { createShopAdvisor, type ShopAdvisor } from "../server/ai/shopAdvice.ts";
+import { DEFAULT_CONFIG } from "../src/game/snakeConfig.ts";
 
 async function startServer(random: () => number = () => 0, advisor: ShopAdvisor = createShopAdvisor(null)) {
   let id = 0;
@@ -195,7 +196,10 @@ test("HTTP API applies a valid paused perk purchase and returns the updated snap
   let draw = 0;
   const app = await startServer(() => draws[draw++] ?? 0);
   try {
-    const createdResponse = await fetch(`${app.baseUrl}/api/games`, { method: "POST", body: "{}" });
+    const createdResponse = await fetch(`${app.baseUrl}/api/games`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ config: { ...DEFAULT_CONFIG, obstacleStartCount: 0, bonusChance: 0 } }),
+    });
     const { game } = await json(createdResponse);
     app.manager.move(game.id, "up");
     for (let index = 0; index < 5; index += 1) app.manager.advance(game.id);

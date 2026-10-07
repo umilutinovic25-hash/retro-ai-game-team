@@ -33,6 +33,10 @@
           <button type="button" data-difficulty="normal" aria-pressed="true">NORMAL</button>
           <button type="button" data-difficulty="hard" aria-pressed="false">HARD</button>
         </div>
+        <div class="segmented" role="group" aria-label="Game mode">
+          <button type="button" data-mode="classic" aria-pressed="true">CLASSIC</button>
+          <button type="button" data-mode="vs_ai" aria-pressed="false">VS AI</button>
+        </div>
         <div class="toolbar-actions">
           <button id="colorblind" type="button" class="pill" aria-pressed="false">◐ COLORBLIND</button>
           <button id="records-open" type="button" class="pill">★ RECORDS</button>
@@ -57,6 +61,7 @@
           <span id="status" class="chip" aria-live="polite" data-state="ready">READY</span>
           <span class="chip">SPEED <b id="pace">1.0×</b></span>
           <span class="chip">20 × 20</span>
+          <span id="rival-score" class="chip rival-score" hidden>AI <b>0</b></span>
           <span id="server-connection" class="chip" data-connection="connecting">CONNECTING</span>
         </div>
         <div class="board-frame">
@@ -73,6 +78,11 @@
               </div>
             </form>
             <button id="overlay-action" class="overlay-button" type="button" hidden>PLAY AGAIN</button>
+            <section id="coach-panel" class="coach-panel" aria-label="AI game coach" hidden>
+              <p id="coach-headline" class="coach-headline">AI COACH</p>
+              <p id="coach-output" class="coach-output" role="status" aria-live="polite">ASK FOR A TIP ABOUT THIS RUN.</p>
+              <button id="coach-button" class="coach-button" type="button">ASK AI COACH</button>
+            </section>
           </section>
           <section id="perk-shop" class="perk-shop" aria-label="Perk shop" aria-live="polite" hidden>
             <div class="shop-heading">
@@ -110,9 +120,13 @@
             <p id="shop-message" class="shop-message" role="status" aria-live="polite"></p>
           </section>
         </div>
-        <ul class="legend" aria-label="Pickups">
+        <ul class="legend" aria-label="Board legend">
           <li><i class="swatch food"></i>FOOD <b>+1</b></li>
           <li><i class="swatch lucky"></i>LUCKY <b>+1 PT</b></li>
+          <li><i class="swatch block"></i>OBSTACLE <b>HAZARD</b></li>
+          <li><i class="swatch gold"></i>GOLD <b>+3</b></li>
+          <li><i class="swatch gem"></i>GEM <b>+5</b></li>
+          <li id="rival-legend" hidden><i class="swatch rival"></i>AI RIVAL</li>
         </ul>
       </section>
 

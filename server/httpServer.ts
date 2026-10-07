@@ -5,6 +5,7 @@ import type { Direction } from "../src/game/snakeEngine.ts";
 import { createShopAdvisor, type ShopAdvisor } from "./ai/shopAdvice.ts";
 import { AGENT_GOAL } from "../src/ai/shopAgent.ts";
 import { createShopAgent, type ShopAgent } from "./agent/shopAgent.ts";
+import { createGameCoach, type GameCoach } from "./ai/gameCoach.ts";
 
 type ApiError = { error: { code: string; message: string } };
 
@@ -57,7 +58,7 @@ function asHttpError(error: unknown): HttpError {
   return new HttpError(500, "internal_error", "The server could not complete the request.");
 }
 
-async function handleRequest(request: IncomingMessage, response: ServerResponse, manager: GameSessionManager, advisor: ShopAdvisor, agent: ShopAgent): Promise<void> {
+async function handleRequest(request: IncomingMessage, response: ServerResponse, manager: GameSessionManager, advisor: ShopAdvisor, agent: ShopAgent, coach: GameCoach): Promise<void> {
   try {
     const url = new URL(request.url ?? "/", "http://localhost");
     const path = url.pathname.split("/").filter(Boolean);
@@ -124,6 +125,22 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
         }
         return;
       }
+      if (action === "coach") {
+        const body = await readJson(request);
+        if (!isRecord(body) || Object.keys(body).length !== 0) {
+          throw new HttpError(400, "invalid_request", "The AI coach does not accept request fields.");
+        }
+        const controller = new AbortController();
+        const onClose = () => { if (!response.writableEnded) controller.abort(); };
+        response.once("close", onClose);
+        try {
+          const result = await coach.coach(manager, gameId, controller.signal);
+          if (!response.destroyed) sendJson(response, 200, { coach: result });
+        } finally {
+          response.removeListener("close", onClose);
+        }
+        return;
+      }
       if (action === "move") {
         const body = await readJson(request);
         if (!isRecord(body) || Object.keys(body).length !== 1 || !isDirection(body.direction)) {
@@ -165,9 +182,10 @@ export function createGameHttpServer(
   manager: GameSessionManager = new GameSessionManager(),
   advisor: ShopAdvisor = createShopAdvisor(null),
   agent: ShopAgent = createShopAgent(null),
+  coach: GameCoach = createGameCoach(null),
 ): Server {
   const server = createServer((request, response) => {
-    void handleRequest(request, response, manager, advisor, agent);
+    void handleRequest(request, response, manager, advisor, agent, coach);
   });
   const webSockets = new WebSocketServer({ noServer: true });
 

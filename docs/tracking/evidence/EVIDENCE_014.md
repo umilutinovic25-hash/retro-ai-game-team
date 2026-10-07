@@ -84,7 +84,7 @@ Run by the user with their own free-tier key held only in the terminal (`AGENT_L
 
 ### Manual browser check
 
-**Not run yet.** To do: `npm run dev:server` (key exported in that terminal) and `npm run dev`, open the shop, press PLAN WITH AI, confirm a plan appears and no purchase was made.
+**User-reported pass (2026-10-07):** the user opened the running game, tried the Shop Strategist in the browser, and confirmed that it works. In the requested flow, the plan appeared and no perk was automatically purchased. This is learner-reported manual evidence; no screenshot or independent browser automation was captured for this check.
 
 ## Honest limitations
 

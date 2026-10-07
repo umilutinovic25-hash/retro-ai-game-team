@@ -8,6 +8,8 @@ test("runtime config accepts the default and explicitly falls back when invalid"
   const invalid = parseGameConfig({ gridSize: 9 });
   assert.deepEqual(invalid.config, DEFAULT_CONFIG);
   assert.match(invalid.error ?? "", /Nevažeća konfiguracija/);
+  assert.deepEqual(parseGameConfig({ ...DEFAULT_CONFIG, obstacleStartCount: -1 }).config, DEFAULT_CONFIG);
+  assert.deepEqual(parseGameConfig({ ...DEFAULT_CONFIG, unexpected: true }).config, DEFAULT_CONFIG);
 });
 
 test("initial snake has three segments and food is outside its body", () => {
@@ -15,6 +17,81 @@ test("initial snake has three segments and food is outside its body", () => {
   assert.equal(state.snake.length, 3);
   assert.ok(state.food);
   assert.equal(state.snake.some((segment) => segment.x === state.food?.x && segment.y === state.food?.y), false);
+  assert.equal(state.obstacles.length, DEFAULT_CONFIG.obstacleStartCount);
+  assert.equal(new Set(state.obstacles.map(({ x, y }) => `${x},${y}`)).size, state.obstacles.length);
+  assert.ok(state.obstacles.every((obstacle) => !state.snake.some((segment) => segment.x === obstacle.x && segment.y === obstacle.y)));
+  assert.ok(state.food && !state.obstacles.some((obstacle) => obstacle.x === state.food?.x && obstacle.y === state.food?.y));
+  assert.ok(state.obstacles.every((point) => Math.max(Math.abs(point.x - 10), Math.abs(point.y - 10)) > 2));
+  assert.ok(state.obstacles.every((point) => point.y !== 10 || point.x <= 10));
+  const blocked = new Set(state.obstacles.map(({ x, y }) => `${x},${y}`));
+  const reachable = new Set(["10,10"]);
+  const queue = [{ x: 10, y: 10 }];
+  while (queue.length) {
+    const point = queue.pop()!;
+    for (const next of [{ x: point.x + 1, y: point.y }, { x: point.x - 1, y: point.y }, { x: point.x, y: point.y + 1 }, { x: point.x, y: point.y - 1 }]) {
+      const key = `${next.x},${next.y}`;
+      if (next.x < 0 || next.y < 0 || next.x >= DEFAULT_CONFIG.gridSize || next.y >= DEFAULT_CONFIG.gridSize || blocked.has(key) || reachable.has(key)) continue;
+      reachable.add(key);
+      queue.push(next);
+    }
+  }
+  assert.equal(reachable.size, DEFAULT_CONFIG.gridSize ** 2 - state.obstacles.length);
+});
+
+test("food can spawn a timed gold or gem bonus that adds score and snake length", () => {
+  const config = { ...DEFAULT_CONFIG, bonusChance: 1 };
+  const state = startGame({ ...createInitialState(config, () => 0.99), food: { x: 11, y: 10 }, luckyPickup: null, bonus: null });
+  const spawned = step(state, config, () => 0.99);
+  assert.ok(spawned.bonus);
+  assert.ok(spawned.bonus?.kind === "gold" || spawned.bonus?.kind === "gem");
+  assert.equal(spawned.bonus?.points, spawned.bonus?.kind === "gem" ? 5 : 3);
+  assert.equal(spawned.bonus?.ticksLeft, config.bonusLifetimeTicks);
+  assert.ok(spawned.bonus && !spawned.obstacles.some((point) => point.x === spawned.bonus?.position.x && point.y === spawned.bonus?.position.y));
+
+  const bonusState = startGame({
+    ...createInitialState(DEFAULT_CONFIG, () => 0),
+    snake: [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }],
+    food: { x: 0, y: 0 },
+    bonus: { position: { x: 11, y: 10 }, kind: "gem", points: 5, ticksLeft: 10, lifetime: 45 },
+    obstacles: [],
+  });
+  const collected = step(bonusState, DEFAULT_CONFIG, () => 0.99);
+  assert.equal(collected.score, 5);
+  assert.equal(collected.snake.length, 4);
+  assert.equal(collected.bonus, null);
+  assert.equal(collected.xp, 0); // score bonuses do not grant food XP
+});
+
+test("bonus expires after its final tick and obstacle collisions end the run", () => {
+  const bonusState = startGame({
+    ...createInitialState(DEFAULT_CONFIG, () => 0),
+    food: { x: 0, y: 0 },
+    bonus: { position: { x: 0, y: 1 }, kind: "gold", points: 3, ticksLeft: 1, lifetime: 45 },
+    obstacles: [],
+  });
+  assert.equal(step(bonusState, DEFAULT_CONFIG).bonus, null);
+
+  const obstacleState = startGame({
+    ...createInitialState(DEFAULT_CONFIG, () => 0),
+    obstacles: [{ x: 11, y: 10 }],
+    food: { x: 0, y: 0 },
+  });
+  assert.equal(step(obstacleState, DEFAULT_CONFIG).status, "game_over");
+});
+
+test("food score milestones add safe obstacles up to the configured maximum", () => {
+  const config = { ...DEFAULT_CONFIG, obstacleEvery: 1, maxObstacles: 1, obstacleStartCount: 0, bonusChance: 0 };
+  const state = startGame({
+    ...createInitialState(config, () => 0),
+    snake: [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }],
+    food: { x: 11, y: 10 },
+    obstacles: [],
+    score: 0,
+  });
+  const next = step(state, config, () => 0);
+  assert.equal(next.obstacles.length, 1);
+  assert.ok(next.obstacles.every((obstacle) => !next.snake.some((segment) => segment.x === obstacle.x && segment.y === obstacle.y)));
+  assert.ok(next.food && !next.obstacles.some((obstacle) => obstacle.x === next.food?.x && obstacle.y === next.food?.y));
 });
 
 test("new game waits for a valid direction before movement starts", () => {
@@ -103,7 +180,8 @@ test("Extra XP changes food awards and a charged life safely recovers a wall col
   assert.equal(recovered.perkPoints, 3);
   assert.equal(recovered.extraXpLevel, 2);
   assert.equal(recovered.luckLevel, 3);
-  assert.deepEqual(recovered.luckyPickup, { x: 0, y: 0 });
+  assert.ok(recovered.luckyPickup);
+  assert.ok(recovered.luckyPickup && !recovered.obstacles.some((point) => point.x === recovered.luckyPickup?.x && point.y === recovered.luckyPickup?.y));
   assert.equal(recovered.direction, "right");
   assert.equal(recovered.queuedDirection, "right");
   assert.equal(recovered.snake.length, 3);
@@ -176,7 +254,7 @@ test("Luck spawn chance scales from 5% to 30% and the orange pickup is placed se
   const draws = [0, 0.049, 0];
   let index = 0;
   const spawned = step(state, DEFAULT_CONFIG, () => draws[index++] ?? 0.99);
-  assert.deepEqual(spawned.luckyPickup, { x: 1, y: 0 });
+  assert.ok(spawned.luckyPickup);
   assert.notDeepEqual(spawned.luckyPickup, spawned.food);
   assert.equal(spawned.snake.some((part) => part.x === spawned.luckyPickup?.x && part.y === spawned.luckyPickup?.y), false);
 
@@ -217,11 +295,11 @@ test("collecting a Lucky pickup grants one point only, and an active pickup bloc
   assert.equal(collected.xp, 40);
   assert.equal(collected.snake.length, 3);
 
-  const redFood = startGame({ ...initial, luckyPickup: { x: 3, y: 0 }, food: { x: 11, y: 10 } });
+  const redFood = startGame({ ...initial, score: 0, luckyPickup: { x: 3, y: 0 }, food: { x: 11, y: 10 } });
   let draws = 0;
-  const kept = step(redFood, DEFAULT_CONFIG, () => { draws += 1; return 0; });
+  const kept = step(redFood, { ...DEFAULT_CONFIG, bonusChance: 0 }, () => { draws += 1; return 0; });
   assert.deepEqual(kept.luckyPickup, redFood.luckyPickup);
-  assert.equal(draws, 1); // Only the next red-food position consumes randomness; no Lucky roll occurs.
+  assert.equal(draws, 1); // Only the next red-food position consumes randomness; the existing Lucky blocks another roll.
 });
 
 test("wall collision ends the game", () => {

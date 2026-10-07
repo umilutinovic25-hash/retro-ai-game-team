@@ -12,6 +12,9 @@ RETRO SNAKE je originalna igra sa retro izgledom i bez tuđih asseta, muzike ili
 - Suprotan smer od trenutnog/zakazanog smera se ignoriše.
 - Hrana se bira samo sa praznih polja.
 - Jedenje hrane povećava zmiju za jedan segment i rezultat za 1.
+- Na početku partije postavljaju se 4 prepreke; za svakih 8 osvojenih poena dodaje se po jedna, najviše 14. Prepreke ne smeju da se preklapaju sa zmijom ili predmetima, niti da zatvore deo table.
+- Posle obične hrane postoji 30% šanse da se pojavi vremenski ograničen bonus: gold vredi 3 poena, a ređi gem 5 poena. Bonus traje 45 koraka, produžava zmiju za jedan segment i ne daje XP ni perk poene.
+- Udarac u prepreku završava igru. Postojeće prepreke ostaju vidljive i pri pauzi; isteknuti bonus nestaje.
 - Svakih 5 poena igra se ubrzava za 12 ms, do minimalnih 80 ms po koraku.
 - Udarac u zid ili telo završava igru.
 - Kada je cela tabla popunjena, igra prelazi u stanje `won`.
@@ -55,10 +58,15 @@ type GameConfig = {
   speedDecreaseMs: number;
   minimumSpeedMs: number;
   scorePerFood: number;
+  obstacleStartCount: number;
+  obstacleEvery: number;
+  maxObstacles: number;
+  bonusChance: number;
+  bonusLifetimeTicks: number;
 };
 ```
 
-Podrazumevana konfiguracija je `{ gridSize: 20, startingSnakeLength: 3, startingSpeedMs: 160, speedIncreaseEvery: 5, speedDecreaseMs: 12, minimumSpeedMs: 80, scorePerFood: 1 }`. `parseGameConfig` proverava konfiguraciju u runtime-u. Nevažeća vrednost vraća bezbedan fallback i poruku greške; aplikacija ne nastavlja neopaženo sa nepoznatim vrednostima.
+Podrazumevana konfiguracija je `{ gridSize: 20, startingSnakeLength: 3, startingSpeedMs: 160, speedIncreaseEvery: 5, speedDecreaseMs: 12, minimumSpeedMs: 80, scorePerFood: 1, obstacleStartCount: 4, obstacleEvery: 8, maxObstacles: 14, bonusChance: 0.3, bonusLifetimeTicks: 45 }`. `parseGameConfig` proverava konfiguraciju u runtime-u. Nevažeća vrednost vraća bezbedan fallback i poruku greške; aplikacija ne nastavlja neopaženo sa nepoznatim vrednostima.
 
 ## Minimal visual requirement
 
@@ -68,7 +76,7 @@ Tamna pozadina, jasna mreža, kontrastna zelena zmija i crvena hrana moraju osta
 
 - Igra radi lokalno kroz postojeći Vite/TypeScript stack.
 - Tastatura i mobilna smerna dugmad kontrolišu smer; suprotan smer se odbija.
-- Hrana se ne pojavljuje na zmiji, rezultat i dužina rastu, a sudari završavaju partiju.
+- Hrana, bonusi i prepreke ne preklapaju se sa zmijom; bonus poeni i dužina rastu, a sudari sa zidom, telom i preprekama završavaju partiju.
 - Pause, restart, and local best score work through the client/server app; local best score remains in browser storage.
 - `GameConfig` i shop advice ulazi/izlazi imaju runtime validaciju i bezbedan fallback ili grešku.
 - Postoje testovi za core logiku i success, negative i failure shop advice putanje.
@@ -76,4 +84,4 @@ Tamna pozadina, jasna mreža, kontrastna zelena zmija i crvena hrana moraju osta
 
 ## Out of scope
 
-Room creation/joining, multiple players in one game, multiplayer UI, login/authentication, database, online leaderboard, deployment, sound, AI opponent, additional AI tools, write tools, autonomous loops, and any game mutation through AI advice. The XP/level/perk and server-side Gemini shop-advice additions are governed by their linked feature specs. Breakable walls, obstacles, and selectable map layouts remain out of scope.
+Room creation/joining, multiple players in one game, multiplayer UI, login/authentication, database, online leaderboard, deployment, sound, AI opponent, additional AI tools, write tools, autonomous loops, and any game mutation through AI advice. The XP/level/perk and server-side Gemini shop-advice additions are governed by their linked feature specs. Breakable walls, moving obstacles, and selectable map layouts remain out of scope.

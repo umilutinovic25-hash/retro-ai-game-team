@@ -5,7 +5,7 @@ Read this module for changes to game behavior, state transitions, rendering, or 
 ## Product boundary
 
 - RETRO SNAKE is an original, minimal browser game on a 20 × 20 board. It has a three-segment starting snake, arrow-key/touch controls, food, score, collision handling, pause/resume, restart, and win handling.
-- Preserve TypeScript + Vite for the browser and the TypeScript Node backend described in [`../specs/REFACTOR_PLAN.md`](../specs/REFACTOR_PLAN.md). The backend may host multiple independent in-memory single-player game containers; each has one player. Do not add room/join flows, accounts, multiplayer participation, online leaderboard, deployment, new game modes, or third-party visual/audio assets.
+- Preserve TypeScript + Vite for the browser and the TypeScript Node backend described in [`../specs/REFACTOR_PLAN.md`](../specs/REFACTOR_PLAN.md). The backend may host multiple independent in-memory game containers; each has one human player. The accepted [Feature 005](../specs/005-ai-coach-and-rival.md) adds an optional server-owned bot rival mode. Do not add human room/join flows, accounts, multiplayer participation, online leaderboard, deployment, or third-party visual/audio assets.
 - The shop AI advisor is a narrow, read-only server flow described by the [shop contract](../specs/TOOL_CONTRACT.md) and [feature 002](../../specs/002-shop-advisor/spec.md). It does not change game rules or authoritative state.
 
 ## State and rendering boundaries

@@ -27,8 +27,9 @@ export function createSnapshotAdapter() {
       direction: player.direction,
       food: next.state.food ? { ...next.state.food } : null,
       lucky: next.state.luckyPickup ? { ...next.state.luckyPickup } : null,
-      bonus: null,
-      obstacles: [],
+      bonus: next.state.bonus ? { ...next.state.bonus, position: { ...next.state.bonus.position } } : null,
+      obstacles: next.state.obstacles.map((obstacle) => ({ ...obstacle })),
+      rival: next.state.rival ? { ...next.state.rival, snake: next.state.rival.snake.map((segment) => ({ ...segment })) } : null,
       score: player.score,
       status: next.state.status,
       combo: 1,
@@ -72,6 +73,9 @@ export function createSnapshotAdapter() {
         } else if (samePoint(head, before.state.luckyPickup)) {
           lastEaten = { kind: "lucky", points: 1, combo: 1, at: { ...head } };
           events.push({ kind: "lucky", at: { ...head }, points: 1 });
+        } else if (before.state.bonus && samePoint(head, before.state.bonus.position)) {
+          lastEaten = { kind: before.state.bonus.kind, points: now.score - old.score, combo: 1, at: { ...head } };
+          events.push({ kind: "ate", at: { ...head }, points: now.score - old.score });
         }
       }
       if (now.progression.level > old.progression.level) events.push({ kind: "levelUp", level: now.progression.level });

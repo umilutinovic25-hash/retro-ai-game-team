@@ -1,6 +1,7 @@
 import "./styles.css";
 import { gameClient, GameApiError, connectGameEvents } from "./api/gameClient.ts";
 import { getTickMs } from "./game/snakeConfig.ts";
+import type { GameMode } from "./game/snakeConfig.ts";
 import { validateGameSnapshot, type GameSnapshot } from "./game/gameProtocol.ts";
 import { isOpposite, type Direction } from "./game/snakeEngine.ts";
 import { createRenderer, type Renderer } from "./rendering/canvasRenderer.ts";
@@ -79,6 +80,14 @@ const statFood = byId("stat-food");
 const statLength = byId("stat-length");
 const statCombo = byId("stat-combo");
 const difficultyButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-difficulty]")];
+const modeButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-mode]")];
+const rivalScoreElement = byId("rival-score");
+const rivalScoreValue = rivalScoreElement.querySelector("b");
+const rivalLegend = byId("rival-legend");
+const coachPanel = byId("coach-panel");
+const coachHeadline = byId("coach-headline");
+const coachOutput = byId("coach-output");
+const coachButton = byId<HTMLButtonElement>("coach-button");
 
 const COUNT_MS = 550;
 const SWIPE_MIN_PX = 24;
@@ -94,6 +103,7 @@ let displayedScore = 0;
 let best = 0;
 const savedDifficulty = readSetting(SETTING_KEYS.difficulty);
 let difficulty: Difficulty = isDifficulty(savedDifficulty) ? savedDifficulty : "normal";
+let mode: GameMode = readSetting(SETTING_KEYS.mode) === "vs_ai" ? "vs_ai" : "classic";
 let colorblind = readSetting(SETTING_KEYS.colorblind) === "1";
 let records: Records = loadRecords();
 let gameFood = 0;
@@ -103,6 +113,17 @@ let disconnectEvents: (() => void) | undefined;
 let shopVisible = false;
 let adviceAbort: AbortController | null = null;
 let agentAbort: AbortController | null = null;
+let coachAbort: AbortController | null = null;
+let coachLoaded = false;
+
+function clearCoach(): void {
+  coachAbort?.abort();
+  coachAbort = null;
+  coachLoaded = false;
+  coachHeadline.textContent = "AI COACH";
+  coachOutput.textContent = "ASK FOR A TIP ABOUT THIS RUN.";
+  coachButton.textContent = "ASK AI COACH";
+}
 
 function clearAdvice(message = ADVICE_IDLE): void {
   adviceAbort?.abort();
@@ -236,6 +257,7 @@ function render(next: GameSnapshot): void {
   const player = next.players[0];
   const { progression, perks } = player;
   const { config } = next;
+  mode = config.mode;
   const state = { status: next.state.status, score: player.score };
   const counting = countdown.isRunning();
 
@@ -250,6 +272,9 @@ function render(next: GameSnapshot): void {
     replayAnimation(bestScore, "best-bump");
   }
   bestScore.textContent = String(best);
+  rivalScoreElement.hidden = next.state.rival === null;
+  rivalLegend.hidden = next.state.rival === null;
+  if (rivalScoreValue) rivalScoreValue.textContent = String(next.state.rival?.score ?? 0);
 
   const tickMs = getTickMs(config, state.score);
   pace.textContent = `${(config.startingSpeedMs / tickMs).toFixed(1)}×`;
@@ -306,6 +331,13 @@ function render(next: GameSnapshot): void {
     button.setAttribute("aria-pressed", String(button.dataset.difficulty === difficulty));
     button.disabled = locked;
   });
+  modeButtons.forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+    button.disabled = locked;
+  });
+  const finished = state.status === "game_over" || state.status === "won";
+  coachPanel.hidden = !finished;
+  coachButton.disabled = coachAbort !== null || coachLoaded;
 
   if (state.status === "ready") {
     gameOverlayTitle.textContent = "READY?";
@@ -315,12 +347,20 @@ function render(next: GameSnapshot): void {
     gameOverlayMessage.textContent = "PRESS P, SPACE OR RESUME TO CONTINUE";
     gameOverlayActionButton.textContent = "RESUME";
   } else if (state.status === "game_over") {
-    gameOverlayTitle.textContent = "GAME OVER";
-    gameOverlayMessage.textContent = `FINAL SCORE: ${state.score} // PRESS R TO RESTART`;
+    const rivalScore = next.state.rival?.score;
+    gameOverlayTitle.textContent = rivalScore === undefined ? "GAME OVER"
+      : state.score > rivalScore ? "YOU WIN" : state.score < rivalScore ? "AI WINS" : "TIE GAME";
+    gameOverlayMessage.textContent = rivalScore === undefined
+      ? `FINAL SCORE: ${state.score} // PRESS R TO RESTART`
+      : `YOU ${state.score} — AI ${rivalScore} // PRESS R TO RESTART`;
     gameOverlayActionButton.textContent = "PLAY AGAIN";
   } else if (state.status === "won") {
-    gameOverlayTitle.textContent = "BOARD CLEAR";
-    gameOverlayMessage.textContent = `FINAL SCORE: ${state.score} // PERFECT RUN`;
+    const rivalScore = next.state.rival?.score;
+    gameOverlayTitle.textContent = rivalScore === undefined ? "BOARD CLEAR"
+      : state.score > rivalScore ? "YOU WIN" : state.score < rivalScore ? "AI WINS" : "TIE GAME";
+    gameOverlayMessage.textContent = rivalScore === undefined
+      ? `FINAL SCORE: ${state.score} // PERFECT RUN`
+      : `YOU ${state.score} — AI ${rivalScore} // BOARD CLEAR`;
     gameOverlayActionButton.textContent = "NEW GAME";
   }
   if (state.status !== "game_over" && state.status !== "won") {
@@ -364,6 +404,7 @@ async function restart(): Promise<void> {
   gameFood = 0;
   shopVisible = false;
   clearAdvice();
+  clearCoach();
   await runAction(() => gameClient.restart(game!.id));
 }
 
@@ -455,6 +496,43 @@ async function setDifficulty(next: Difficulty): Promise<void> {
   difficulty = next;
   writeSetting(SETTING_KEYS.difficulty, next);
   await initializeGame();
+}
+
+async function setMode(next: GameMode): Promise<void> {
+  const current = game?.state.status;
+  if (!game || countdown.isRunning() || (current !== "ready" && current !== "game_over" && current !== "won") || mode === next) return;
+  mode = next;
+  writeSetting(SETTING_KEYS.mode, next);
+  await initializeGame();
+}
+
+async function requestCoach(): Promise<void> {
+  if (!game || (game.state.status !== "game_over" && game.state.status !== "won") || coachAbort || coachLoaded) return;
+  const gameId = game.id;
+  const controller = new AbortController();
+  coachAbort = controller;
+  coachButton.textContent = "THINKING…";
+  coachOutput.textContent = "ANALYZING YOUR RUN…";
+  try {
+    const result = await gameClient.gameCoach(gameId, controller.signal);
+    if (controller.signal.aborted || !game || game.id !== gameId) return;
+    if (result.status === "coaching") {
+      coachHeadline.textContent = result.headline;
+      coachOutput.textContent = result.tip;
+      coachLoaded = true;
+    } else {
+      coachHeadline.textContent = "AI COACH";
+      coachOutput.textContent = result.message;
+    }
+  } catch (error) {
+    if (!controller.signal.aborted) coachOutput.textContent = error instanceof GameApiError ? error.message : "AI COACH IS UNAVAILABLE.";
+  } finally {
+    if (coachAbort === controller) {
+      coachAbort = null;
+      coachButton.textContent = coachLoaded ? "COACH TIP READY" : "ASK AI COACH";
+      if (game?.id === gameId) render(game);
+    }
+  }
 }
 
 function toggleMute(): void {
@@ -570,6 +648,13 @@ difficultyButtons.forEach((button) => {
     if (isDifficulty(next)) void setDifficulty(next);
   });
 });
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const next = button.dataset.mode;
+    if (next === "classic" || next === "vs_ai") void setMode(next);
+  });
+});
+coachButton.addEventListener("click", () => { void requestCoach(); });
 gameOverlayActionButton.addEventListener("click", () => {
   if (game?.state.status === "paused") void togglePause();
   else void restart();
@@ -674,12 +759,14 @@ async function initializeGame(): Promise<void> {
   nameForm.hidden = true;
   shopVisible = false;
   clearAdvice();
+  clearCoach();
   best = readBest(difficulty);
   connection.textContent = "CONNECTING";
   connection.dataset.connection = "connecting";
   difficultyButtons.forEach((button) => { button.disabled = true; });
+  modeButtons.forEach((button) => { button.disabled = true; });
   try {
-    const initial = await gameClient.create(DIFFICULTY_CONFIGS[difficulty]);
+    const initial = await gameClient.create({ ...DIFFICULTY_CONFIGS[difficulty], mode });
     if (!initGate.isCurrent(token) || !initGate.adopt(token, initial.id)) return;
     applySnapshot(initial);
     disconnectEvents = connectGameEvents(initial.id, applySnapshot, (connected) => {
@@ -691,6 +778,7 @@ async function initializeGame(): Promise<void> {
   } catch (error) {
     initGate.fail(token);
     difficultyButtons.forEach((button) => { button.disabled = false; });
+    modeButtons.forEach((button) => { button.disabled = false; });
     reportError(error);
   }
 }

@@ -7,7 +7,7 @@ import { createSnapshotAdapter } from "../src/rendering/snapshotAdapter.ts";
 type Pt = { x: number; y: number };
 type Over = {
   id?: string; revision?: number; status?: GameSnapshot["state"]["status"]; snake?: Pt[];
-  food?: Pt | null; lucky?: Pt | null; score?: number; level?: number; perkPoints?: number;
+  food?: Pt | null; lucky?: Pt | null; bonus?: GameSnapshot["state"]["bonus"]; obstacles?: Pt[]; score?: number; level?: number; perkPoints?: number;
   extraXp?: number; luck?: number; lives?: number;
 };
 
@@ -33,7 +33,7 @@ function snap(o: Over = {}): GameSnapshot {
         extraLife: { charges: lives, nextCost: lives === 0 ? 5 : lives === 1 ? 8 : null },
       },
     }],
-    state: { food: o.food === undefined ? { x: 15, y: 5 } : o.food, luckyPickup: o.lucky ?? null, status: o.status ?? "playing" },
+    state: { food: o.food === undefined ? { x: 15, y: 5 } : o.food, luckyPickup: o.lucky ?? null, bonus: o.bonus ?? null, obstacles: o.obstacles ?? [], rival: null, status: o.status ?? "playing" },
   };
 }
 
@@ -41,7 +41,7 @@ const moveRight = (head: number, extra: Over = {}): Over => ({
   snake: [{ x: head, y: 10 }, { x: head - 1, y: 10 }, { x: head - 2, y: 10 }], ...extra,
 });
 
-test("the first snapshot is a reset with neutral Phase 2 fields", () => {
+test("the first snapshot maps server-backed obstacle and bonus fields", () => {
   const result = createSnapshotAdapter().adapt(snap({ revision: 1 }));
   assert.equal(result.moved, false);
   assert.deepEqual(result.events, []);
@@ -91,6 +91,20 @@ test("collecting the Lucky pickup emits lucky and a lucky lastEaten", () => {
   const result = adapter.adapt(snap({ ...moveRight(11, { revision: 2, perkPoints: 1 }), lucky: null }));
   assert.deepEqual(result.events, [{ kind: "lucky", at: { x: 11, y: 10 }, points: 1 }]);
   assert.equal(result.state.lastEaten?.kind, "lucky");
+});
+
+test("the renderer receives server obstacles and reports collected score bonuses", () => {
+  const adapter = createSnapshotAdapter();
+  const bonus = { position: { x: 11, y: 10 }, kind: "gold" as const, points: 3, ticksLeft: 20, lifetime: DEFAULT_CONFIG.bonusLifetimeTicks };
+  adapter.adapt(snap(moveRight(10, { revision: 1, bonus, obstacles: [{ x: 3, y: 4 }] })));
+  const result = adapter.adapt(snap({
+    ...moveRight(11, { revision: 2, score: 3, bonus: null, obstacles: [{ x: 3, y: 4 }] }),
+  }));
+  assert.deepEqual(result.state.obstacles, [{ x: 3, y: 4 }]);
+  assert.equal(result.state.bonus, null);
+  assert.deepEqual(result.events, [{ kind: "ate", at: { x: 11, y: 10 }, points: 3 }]);
+  assert.equal(result.state.lastEaten?.kind, "gold");
+  assert.equal(result.state.lastEaten?.points, 3);
 });
 
 test("a higher level emits levelUp", () => {

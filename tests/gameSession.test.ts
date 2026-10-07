@@ -45,7 +45,7 @@ test("manager awards food XP and publishes a successful paused perk purchase", (
   const draws = [190 / 397, 170 / 396, 0.99, 150 / 395, 0.99, 130 / 394, 0.99, 110 / 393, 0.99, 90 / 392, 0.99];
   let draw = 0;
   const manager = managerFixture(() => draws[draw++] ?? 0);
-  const created = manager.create();
+  const created = manager.create({ ...DEFAULT_CONFIG, obstacleStartCount: 0, bonusChance: 0 });
   manager.move(created.id, "up");
   for (let index = 0; index < 5; index += 1) manager.advance(created.id);
   const earned = manager.get(created.id);

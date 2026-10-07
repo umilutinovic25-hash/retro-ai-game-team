@@ -2,6 +2,7 @@ import type { Difficulty } from "./difficulty.ts";
 
 export const SETTING_KEYS = {
   difficulty: "retro-snake-difficulty",
+  mode: "retro-snake-mode",
   colorblind: "retro-snake-colorblind",
 } as const;
 

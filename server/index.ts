@@ -4,6 +4,8 @@ import { createJsonAdviceTelemetrySink, createShopAdvisor } from "./ai/shopAdvic
 import { createGeminiTransport } from "./ai/geminiTransport.ts";
 import { createShopAgent, createJsonAgentTelemetrySink } from "./agent/shopAgent.ts";
 import { createGoogleAgentTransport } from "./agent/googleTransport.ts";
+import { createGameCoach } from "./ai/gameCoach.ts";
+import { createGoogleGameCoachTransport } from "./ai/gameCoachTransport.ts";
 
 const port = Number(process.env.PORT ?? 3001);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -13,7 +15,8 @@ const advisor = createShopAdvisor(apiKey ? createGeminiTransport(apiKey) : null,
 const agent = createShopAgent(apiKey ? createGoogleAgentTransport(apiKey) : null, {
   deps: { telemetry: createJsonAgentTelemetrySink() },
 });
-const server = createGameHttpServer(new GameSessionManager(), advisor, agent);
+const coach = createGameCoach(apiKey ? createGoogleGameCoachTransport(apiKey) : null);
+const server = createGameHttpServer(new GameSessionManager(), advisor, agent, coach);
 
 server.listen(port, "127.0.0.1", () => {
   console.log(`RETRO SNAKE server listening on http://127.0.0.1:${port}`);
