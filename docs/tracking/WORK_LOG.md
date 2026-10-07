@@ -263,3 +263,12 @@ Append one concise entry for each substantive implementation, review, or documen
 
 - **Outcome:** user ran `AGENT_LIVE=1 npm run agent:live` with their own free-tier key: `completed`, 4 steps, 3 tool calls, 6 provider attempts, 24 717 ms; `gemini-3.8-flash` timed out twice (408) and the run fell back to `gemini-3.5-flash-lite`; plan `extra_xp, extra_xp` (3 of 3 points). Details in [Evidence 014](evidence/EVIDENCE_014.md).
 - **Limitations:** one run, one scenario, one answering model; browser check still pending. No key was read or stored by the assistant; the user's earlier mis-pasted value caused one `unauthorized` run that stopped safely.
+
+## 2026-10-07 — Best Game Phase 1 spec
+
+- **Goal:** merge the user's private `feature/modern-graphics` (Canvas renderer, sound, records, accessibility) into the team game, delivered in two phases; Phase 1 = visuals and client features with no server change.
+- **Starting state:** branch `best-game-phase1` cut from `main` (`7e92b6f`); user branch fetched read-only as local ref `modern-graphics-src` (not pushed).
+- **Prompt/spec/evidence:** [spec](../../specs/004-best-game-phase1/spec.md). No prompt artifact, no evidence yet.
+- **Outcome:** spec drafted from an interactive design session (approach A: snapshot adapter in front of the renderer; countdown, difficulty presets and input buffer client-side).
+- **Verification:** documentation only; code checks not applicable.
+- **Limitations:** implementation plan not written; `AGENTS.md` contract change is a requirement (FR-014), not done yet.
