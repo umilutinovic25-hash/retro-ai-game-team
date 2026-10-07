@@ -45,7 +45,7 @@ AI coding agent je korišćen za razradu slojevite arhitekture, implementaciju o
 
 - Live proba je jedan scenario; `gemini-3.8-flash` je istekao dva puta, a `gemini-3.5-flash-lite` završio je run. To ne garantuje isti odziv ili kvalitet u svakom pokušaju.
 - Sve planirane W05 provere su završene; nema preostalih provera koje blokiraju predaju.
-- Sledeći korak: predati izveštaj zajedno sa [Evidence 014](../evidence/EVIDENCE_014.md). Dodatno kodiranje nije potrebno za W05 kriterijume koji su ovde provereni.
+- Sledeći korak: poslati ovaj izveštaj Marku uz [Evidence 014](../evidence/EVIDENCE_014.md). Dodatno kodiranje nije potrebno za završetak W05 zadatka.
 
 ## 7. Poverljiva napomena za tutora
 
