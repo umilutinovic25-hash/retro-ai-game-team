@@ -1,4 +1,5 @@
 import { validateGameSnapshot, type GameSnapshot } from "../game/gameProtocol.ts";
+import type { GameConfig } from "../game/snakeConfig.ts";
 import type { Direction } from "../game/snakeEngine.ts";
 import { validateShopAdviceResult, type ShopAdviceResult } from "../ai/shopAdvice.ts";
 import { AGENT_GOAL, validatePublicAgentRun, type PublicAgentRun } from "../ai/shopAgent.ts";
@@ -103,7 +104,7 @@ async function requestShopAgent(gameId: string, signal?: AbortSignal): Promise<P
 }
 
 export const gameClient = {
-  create: () => request("/api/games", "POST", {}),
+  create: (config?: GameConfig) => request("/api/games", "POST", config ? { config } : {}),
   get: (gameId: string) => request(`/api/games/${encodeURIComponent(gameId)}`),
   move: (gameId: string, direction: Direction) => request(`/api/games/${encodeURIComponent(gameId)}/move`, "POST", { direction }),
   pause: (gameId: string) => request(`/api/games/${encodeURIComponent(gameId)}/pause`, "POST", {}),

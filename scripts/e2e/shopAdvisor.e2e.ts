@@ -190,6 +190,74 @@ async function main(): Promise<void> {
       assert.doesNotMatch(await text(page, "#shop-advice-output"), /GEMINI|GEMMA/);
     });
 
+    await check("C1", "The Canvas board draws and the page has no console errors", async () => {
+      const errors: string[] = [];
+      const onError = (error: Error) => errors.push(error.message);
+      page.on("pageerror", onError);
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.waitForTimeout(500);
+      const drawn = await page.evaluate(() => {
+        const canvas = document.querySelector("#board") as HTMLCanvasElement | null;
+        if (!canvas || canvas.tagName !== "CANVAS") return false;
+        const data = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+        if (!data) return false;
+        let lit = 0;
+        for (let index = 0; index < data.length; index += 4 * 97) if (data[index] + data[index + 1] + data[index + 2] > 40) lit += 1;
+        return lit > 20;
+      });
+      page.off("pageerror", onError);
+      assert.equal(drawn, true);
+      assert.deepEqual(errors, []);
+    });
+
+    await check("C2", "An arrow starts a 3-2-1 countdown, then the game runs", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.keyboard.press("ArrowUp");
+      await page.waitForFunction(() => document.querySelector("#countdown")?.textContent === "3");
+      assert.equal(await text(page, "#status"), "GET READY");
+      await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
+    });
+
+    await check("C3", "M and C toggle sound and colors and the choice survives a reload", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.keyboard.press("c");
+      assert.equal(await page.evaluate(() => document.body.dataset.palette), "colorblind");
+      await page.keyboard.press("m");
+      assert.equal(await page.getAttribute("#mute", "aria-pressed"), "false");
+      await page.reload();
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      assert.equal(await page.evaluate(() => document.body.dataset.palette), "colorblind");
+      assert.equal(await page.getAttribute("#mute", "aria-pressed"), "false");
+      await page.keyboard.press("c");
+      await page.keyboard.press("m");
+    });
+
+    await check("C4", "The records dialog opens and closes", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.click("#records-open");
+      await page.waitForSelector("#records-dialog[open]");
+      assert.match(await text(page, "#records-empty"), /NO SCORES YET/);
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector("#records-dialog")?.hasAttribute("open"));
+    });
+
+    await check("C5", "Difficulty starts a new game with the speed preset and is remembered", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      const created = page.waitForRequest((request) => request.url().endsWith("/api/games") && request.method() === "POST");
+      await page.click('[data-difficulty="hard"]');
+      assert.equal((await created).postDataJSON().config.startingSpeedMs, 125);
+      await page.waitForFunction(() => document.querySelector('[data-difficulty="hard"]')?.getAttribute("aria-pressed") === "true");
+      await page.reload();
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      assert.equal(await page.getAttribute('[data-difficulty="hard"]', "aria-pressed"), "true");
+      await page.click('[data-difficulty="normal"]');
+    });
+
     await stop(api);
     api = await startApi(apiPort, { FAKE_PROVIDER: "off" });
 
