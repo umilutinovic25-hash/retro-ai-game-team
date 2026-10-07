@@ -32,6 +32,18 @@ Inputs and conditions the spec implies that no task's headline tests would catch
 4. A difficulty change during play or during the countdown must be refused; a valid change must create a new server game and stop the old event stream — Task 7.
 5. Closing the shop (W04 test M4) must not leave the status reading `PAUSED` while the countdown runs — Task 7.
 
+## Follow-up review fixes (2026-10-07)
+
+The independent Phase 1 review identified these acceptance cases for a focused client-only follow-up. Keep the server and protocol unchanged.
+
+- [x] A same-heading key while `ready` does not start the countdown; the first valid turn locks through countdown and the start request, and a failed start request releases the lock.
+- [x] A held second turn is flushed using the heading from the moved server snapshot, and an old game's snapshots are rejected throughout replacement initialization.
+- [x] A request failure while a game is active shows the connection failure without replacing game status; any later valid snapshot restores the online indicator and status.
+- [x] Opening records cancels an in-progress countdown.
+- [x] Duplicate snapshots do not restart an in-progress Canvas interpolation; movement through a corner stays continuous.
+- [x] Modifier shortcuts such as Cmd/Ctrl+C and Cmd/Ctrl+R are left to the browser and do not toggle colors or restart a game.
+- [x] Browser E2E coverage exercises the above cases and existing Canvas/shop smoke checks remain green.
+
 ## File Structure
 
 | File | Responsibility |

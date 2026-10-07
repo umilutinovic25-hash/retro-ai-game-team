@@ -85,6 +85,10 @@ const easeOutBack = (t: number) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 const key = (p: Point) => `${p.x},${p.y}`;
 
+export function sameSnakePositions(a: Point[], b: Point[]): boolean {
+  return a.length === b.length && a.every((point, index) => point.x === b[index].x && point.y === b[index].y);
+}
+
 export function createRenderer(canvas: HTMLCanvasElement, config: GameConfig): Renderer {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D is not supported in this browser.");
@@ -221,7 +225,7 @@ export function createRenderer(canvas: HTMLCanvasElement, config: GameConfig): R
       prev = previous;
       moveStart = now;
       moveDuration = tickMs;
-    } else if (!previous || previous.snake !== state.snake) {
+    } else if (!previous || !sameSnakePositions(previous.snake, state.snake)) {
       prev = state;
     }
     curr = state;

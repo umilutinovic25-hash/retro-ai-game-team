@@ -220,6 +220,124 @@ async function main(): Promise<void> {
       await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
     });
 
+    await check("C6", "READY ignores the current heading and locks the first valid start turn", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      const moves: string[] = [];
+      page.on("request", (request) => {
+        if (request.url().endsWith("/move") && request.method() === "POST") moves.push(String(request.postDataJSON()?.direction));
+      });
+      await page.keyboard.press("ArrowRight"); // initial heading is right; must be ignored
+      await page.waitForTimeout(80);
+      assert.equal(await text(page, "#status"), "READY");
+      await page.keyboard.press("ArrowUp");
+      await page.keyboard.press("ArrowLeft"); // cannot replace the first accepted start turn
+      await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
+      assert.deepEqual(moves, ["up"]);
+    });
+
+    await check("C11", "A failed first move releases the READY start lock", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.evaluate(() => {
+        const target = window as Window & { offlineSeen?: boolean; connectionObserver?: MutationObserver };
+        const badge = document.querySelector("#server-connection");
+        target.offlineSeen = false;
+        target.connectionObserver = new MutationObserver(() => {
+          if (badge?.getAttribute("data-connection") === "offline") target.offlineSeen = true;
+        });
+        target.connectionObserver.observe(badge!, { attributes: true, attributeFilter: ["data-connection"] });
+      });
+      await page.route("**/move", (route) => route.abort());
+      const failedMove = page.waitForEvent("requestfailed", (request) => request.url().endsWith("/move"));
+      await page.keyboard.press("ArrowUp");
+      await failedMove;
+      await page.waitForFunction(() => (window as Window & { offlineSeen?: boolean }).offlineSeen === true);
+      await page.waitForFunction(() => (document.querySelector("#countdown") as HTMLElement | null)?.hidden === true);
+      await page.unroute("**/move");
+      await page.keyboard.press("ArrowDown");
+      await page.waitForFunction(() => document.querySelector("#countdown")?.textContent === "3");
+      await page.evaluate(() => (window as Window & { connectionObserver?: MutationObserver }).connectionObserver?.disconnect());
+    });
+
+    await check("C7", "Opening records cancels a running start countdown", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.keyboard.press("ArrowUp");
+      await page.waitForFunction(() => document.querySelector("#countdown")?.textContent === "3");
+      await page.click("#records-open");
+      await page.waitForSelector("#records-dialog[open]");
+      assert.equal(await page.locator("#countdown").isVisible(), false);
+      assert.equal(await text(page, "#status"), "READY");
+    });
+
+    await check("C8", "Cmd/Ctrl shortcuts are not intercepted by the game", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      const before = await page.evaluate(() => document.body.dataset.palette);
+      const prevented = await page.evaluate(() => [
+        new KeyboardEvent("keydown", { key: "c", metaKey: true, bubbles: true, cancelable: true }),
+        new KeyboardEvent("keydown", { key: "r", ctrlKey: true, bubbles: true, cancelable: true }),
+      ].map((event) => { window.dispatchEvent(event); return event.defaultPrevented; }));
+      assert.deepEqual(prevented, [false, false]);
+      assert.equal(await page.evaluate(() => document.body.dataset.palette), before);
+      assert.equal(await text(page, "#status"), "READY");
+    });
+
+    await check("C9", "A failed move request does not replace the active game status", async () => {
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.keyboard.press("ArrowUp");
+      await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
+      await page.waitForTimeout(250);
+      const attemptedMoves: string[] = [];
+      page.on("request", (request) => { if (request.url().endsWith("/move")) attemptedMoves.push(request.url()); });
+      await page.evaluate(() => {
+        const target = window as Window & { offlineStatus?: string | null; connectionObserver?: MutationObserver };
+        const badge = document.querySelector("#server-connection");
+        target.offlineStatus = null;
+        target.connectionObserver = new MutationObserver(() => {
+          if (badge?.getAttribute("data-connection") === "offline") target.offlineStatus = document.querySelector("#status")?.textContent ?? null;
+        });
+        target.connectionObserver.observe(badge!, { attributes: true, attributeFilter: ["data-connection"] });
+      });
+      await page.route("**/move", (route) => route.abort());
+      await page.keyboard.press("ArrowLeft");
+      try {
+        await page.waitForFunction(() => (window as Window & { offlineStatus?: string | null }).offlineStatus === "PLAYING", undefined, { timeout: 5000 });
+      } catch {
+        throw new Error(`move failure did not report offline; observed move requests: ${attemptedMoves.join(", ") || "none"}`);
+      }
+      await page.unroute("**/move");
+      await page.waitForTimeout(400);
+      await page.keyboard.press("ArrowLeft");
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      assert.equal(await text(page, "#status"), "PLAYING");
+      await page.evaluate(() => (window as Window & { connectionObserver?: MutationObserver }).connectionObserver?.disconnect());
+    });
+
+    await check("C10", "A held second turn waits until the first turn is applied by a server tick", async () => {
+      const moveObservations: Array<{ sent: string; sentAt: number }> = [];
+      page.on("request", (request) => {
+        if (!request.url().endsWith("/move") || request.method() !== "POST") return;
+        moveObservations.push({ sent: String(request.postDataJSON()?.direction), sentAt: Date.now() });
+      });
+      await page.goto(webUrl);
+      await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.keyboard.press("ArrowUp");
+      await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
+      await page.waitForTimeout(100);
+      await page.keyboard.press("ArrowLeft");
+      await page.keyboard.press("ArrowDown");
+      await page.waitForFunction(() => document.querySelector("#status")?.textContent !== "GET READY", undefined, { timeout: 5000 });
+      // Keep observations in Node scope; give the buffer a bounded chance to flush its held turn.
+      const deadline = Date.now() + 4000;
+      while (!moveObservations.some((item) => item.sent === "down") && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 40));
+      assert.deepEqual(moveObservations.map((item) => item.sent), ["up", "left", "down"]);
+      assert.ok((moveObservations[2]?.sentAt ?? 0) - (moveObservations[1]?.sentAt ?? 0) >= 100,
+        "the held turn must wait for a server movement snapshot before it is sent");
+    });
+
     await check("C3", "M and C toggle sound and colors and the choice survives a reload", async () => {
       await page.goto(webUrl);
       await page.waitForSelector('#server-connection[data-connection="online"]');

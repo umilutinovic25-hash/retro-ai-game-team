@@ -18,6 +18,14 @@ test("while initializing and no game is active, no snapshot is accepted", () => 
   assert.equal(gate.allows(false, "new-game"), false);
 });
 
+test("without an active or adopted game, stale snapshots stay blocked", () => {
+  const gate = createInitGate();
+  assert.equal(gate.allows(false, "old-game"), false);
+  const token = gate.begin() as number;
+  gate.fail(token);
+  assert.equal(gate.allows(false, "old-game"), false);
+});
+
 test("after adopting a game, with no active game only that game is accepted", () => {
   const gate = createInitGate();
   const token = gate.begin() as number;

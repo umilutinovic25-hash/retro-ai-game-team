@@ -26,7 +26,7 @@ export function createInitGate() {
     allows(gameActive: boolean, id: string): boolean {
       if (gameActive) return true;
       if (initializing) return false;
-      return acceptId === null || id === acceptId;
+      return acceptId !== null && id === acceptId;
     },
   };
 }

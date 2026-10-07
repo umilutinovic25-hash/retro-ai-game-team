@@ -282,3 +282,13 @@ Append one concise entry for each substantive implementation, review, or documen
 - **Rulings:** `won` event added; WASD not mapped (S is the shop key); `GET READY` status during the countdown; difficulty only when not playing; SC-004 checked against `7e92b6f`.
 - **Limitations:** a human has not yet played it; the Lucky visual and phone swipe were not observed; Phase 2 not started.
 - **Next step:** the user plays it; then the final review, and a decision about publishing or Phase 2.
+
+## 2026-10-07 — Best Game Phase 1 review follow-up
+
+- **Goal / acceptance:** close the eight residual review findings shown in the user's screenshot; frozen cases R1–R8 are in [Evidence 016](evidence/EVIDENCE_016.md) and the [Phase 1 plan](../../specs/004-best-game-phase1/plan.md).
+- **Starting state:** clean `best-game-phase1` at `a83b85d`; pre-change checks captured in Evidence 016 (167/167 unit tests, existing 12 browser checks, typecheck/build/security scan all passed).
+- **Context used:** Phase 1 plan/spec, Evidence 015, project instructions 01/02/04/05, main client, renderer, input/init/countdown modules, and current E2E harness. No standalone prompt artifact applies.
+- **Scope:** fix client input/start/init/error/records/shortcut handling and renderer interpolation continuity; add focused unit/browser coverage. Server rules/protocol, AI, and publishing remain outside this task.
+- **Outcome:** ready-state input now ignores the existing heading and locks the first accepted direction through the countdown/request; quick turns use `queuedDirection` for validity and the applied server heading to release the held turn; stale snapshots are gated during game initialization; active-game status survives failed requests and valid snapshots restore online state; records cancel the countdown; duplicate renderer snapshots preserve the current tween; Cmd/Ctrl/Alt shortcuts are left alone. Added unit and browser regressions and checked the Phase 1 follow-up cases.
+- **Verification:** `npm run typecheck` passed; `npm test` passed (170/170); `npm run build` passed; `npm run security:scan` passed; `git diff --check` passed; `npm run test:e2e` passed (18/18, including six added C6–C11 scenarios). Exact task evidence is in [Evidence 016](evidence/EVIDENCE_016.md).
+- **Limitations / next step:** no human visual animation review; the old-WebSocket race is covered by the init-gate unit tests and client integration, not a forced E2E race. Changes remain local and uncommitted; no publishing occurred.

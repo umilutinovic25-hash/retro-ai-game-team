@@ -10,6 +10,7 @@ import { DIFFICULTY_CONFIGS, isDifficulty, type Difficulty } from "./ui/difficul
 import { addEntry, loadRecords, qualifies, recordGame, sanitizeName, saveRecords, type Records } from "./ui/records.ts";
 import { SETTING_KEYS, bestKey, readBest, readSetting, writeSetting } from "./ui/settings.ts";
 import { createInputBuffer } from "./ui/inputBuffer.ts";
+import { createInitGate } from "./ui/initGate.ts";
 import { createCountdown } from "./ui/countdown.ts";
 import { swipeDirection } from "./ui/swipe.ts";
 
@@ -85,6 +86,7 @@ const ADVICE_IDLE = "ASK WHETHER TO BUY A PERK OR WAIT.";
 const AGENT_IDLE = "PLAN YOUR NEXT PERK PURCHASES WITH AI.";
 
 const adapter = createSnapshotAdapter();
+const initGate = createInitGate();
 const sound = createSoundPlayer();
 let renderer: Renderer | null = null;
 let game: GameSnapshot | null = null;
@@ -160,6 +162,7 @@ function runCountdown(onDone: () => void): void {
 function sendMove(direction: Direction): void {
   if (game) void runAction(() => gameClient.move(game!.id, direction));
 }
+
 const inputs = createInputBuffer(sendMove);
 
 function handleEvents(events: RenderEvent[], next: GameSnapshot, before: GameSnapshot | null): void {
@@ -209,7 +212,8 @@ function finishGame(final: GameSnapshot): void {
 
 function applySnapshot(value: unknown): void {
   const next = validateGameSnapshot(value);
-  if (!next || (game && next.id !== game.id) || (game && next.revision < game.revision)) return;
+  if (!next || !initGate.allows(game !== null, next.id)
+    || (game && next.id !== game.id) || (game && next.revision < game.revision)) return;
   if (game && (next.revision !== game.revision || next.state.status !== "paused")) clearAdvice();
   if (!renderer) {
     renderer = createRenderer(gameBoard, { gridSize: next.config.gridSize, maxComboMultiplier: 4 });
@@ -217,10 +221,13 @@ function applySnapshot(value: unknown): void {
   }
   const adapted = adapter.adapt(next);
   renderer.update(adapted.state, adapted.moved, getTickMs(next.config, next.players[0].score));
-  if (adapted.moved) inputs.tick();
+  if (adapted.moved) inputs.tick(next.players[0].direction);
   if (next.state.status !== "playing") inputs.reset();
   const before = game;
   game = next;
+  if (next.state.status !== "ready") startDirection = null;
+  connection.textContent = "SERVER ONLINE";
+  connection.dataset.connection = "online";
   handleEvents(adapted.events, next, before);
   render(next);
 }
@@ -326,9 +333,9 @@ function reportError(error: unknown): void {
   const message = error instanceof GameApiError ? error.message : "GAME SERVER REQUEST FAILED.";
   connection.textContent = "SERVER OFFLINE";
   connection.dataset.connection = "offline";
-  status.textContent = "SERVER OFFLINE";
-  status.dataset.state = "offline";
   if (!game) {
+    status.textContent = "SERVER OFFLINE";
+    status.dataset.state = "offline";
     gameOverlay.hidden = false;
     gameOverlayTitle.textContent = "SERVER UNAVAILABLE";
     gameOverlayMessage.textContent = `${message} START THE SERVER AND RELOAD.`;
@@ -364,18 +371,21 @@ function handleDirection(direction: Direction): void {
   if (!game) return;
   const current = game.state.status;
   if (current === "ready") {
-    if (isOpposite(direction, game.players[0].direction)) return;
+    if (direction === game.players[0].direction || isOpposite(direction, game.players[0].direction) || startDirection !== null) return;
     startDirection = direction;
     if (!countdown.isRunning()) {
       runCountdown(() => {
         const heading = startDirection;
-        startDirection = null;
-        if (heading && game?.state.status === "ready") sendMove(heading);
+        if (heading && game?.state.status === "ready") {
+          void runAction(() => gameClient.move(game!.id, heading)).then((ok) => {
+            if (!ok || game?.state.status === "ready") startDirection = null;
+          });
+        }
       });
     }
     return;
   }
-  if (current === "playing" && !countdown.isRunning()) inputs.press(direction, game.players[0].direction);
+  if (current === "playing" && !countdown.isRunning()) inputs.press(direction, game.players[0].queuedDirection);
 }
 
 function resumeWithCountdown(): void {
@@ -490,6 +500,7 @@ function renderRecords(highlight = -1): void {
 }
 
 function openRecords(highlight = -1): void {
+  if (countdown.isRunning()) cancelCountdown();
   if (game?.state.status === "playing") void togglePause();
   renderRecords(highlight);
   if (!recordsDialog.open) recordsDialog.showModal();
@@ -519,7 +530,7 @@ const keyDirections: Record<string, Direction> = {
 };
 
 window.addEventListener("keydown", (event) => {
-  if (event.repeat || recordsDialog.open || event.target instanceof HTMLInputElement) return;
+  if (event.repeat || event.metaKey || event.ctrlKey || event.altKey || recordsDialog.open || event.target instanceof HTMLInputElement) return;
   const key = event.key.toLowerCase();
   if (key === "r") {
     event.preventDefault();
@@ -648,6 +659,8 @@ boardFrame.addEventListener("pointerup", (event) => {
 boardFrame.addEventListener("pointercancel", () => { swipeStart = null; });
 
 async function initializeGame(): Promise<void> {
+  const token = initGate.begin();
+  if (token === null) return;
   disconnectEvents?.();
   disconnectEvents = undefined;
   game = null;
@@ -664,16 +677,20 @@ async function initializeGame(): Promise<void> {
   best = readBest(difficulty);
   connection.textContent = "CONNECTING";
   connection.dataset.connection = "connecting";
+  difficultyButtons.forEach((button) => { button.disabled = true; });
   try {
     const initial = await gameClient.create(DIFFICULTY_CONFIGS[difficulty]);
+    if (!initGate.isCurrent(token) || !initGate.adopt(token, initial.id)) return;
     applySnapshot(initial);
     disconnectEvents = connectGameEvents(initial.id, applySnapshot, (connected) => {
       connection.textContent = connected ? "SERVER ONLINE" : "RECONNECTING";
       connection.dataset.connection = connected ? "online" : "reconnecting";
     });
     const fresh = await gameClient.get(initial.id);
-    applySnapshot(fresh);
+    if (initGate.isCurrent(token)) applySnapshot(fresh);
   } catch (error) {
+    initGate.fail(token);
+    difficultyButtons.forEach((button) => { button.disabled = false; });
     reportError(error);
   }
 }
