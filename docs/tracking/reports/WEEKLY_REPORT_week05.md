@@ -11,7 +11,7 @@
 | Par / tim | Zvanično prijavljen sa Matijom (tim_1); rad na samostalnoj verziji zadatka. |
 | Moj konkretan doprinos / uloga | Izabrao sam Shop Strategist kao W05 scenario, odobrio ograničen obim i specifikaciju, pokrenuo live proveru sa svojim ključem i ručno proverio prikaz plana u igri. |
 | Datum predaje | 2026-10-07 |
-| Reference na rad i dokaze | [Zvanični team repo — W05 commit 7e92b6f](https://github.com/MatijaRadulovic/retro-ai-game/tree/main), [W05 commit](https://github.com/MatijaRadulovic/retro-ai-game/commit/7e92b6f7a04ee89e179e5a9181c1fea9b010539b), [W05 specifikacija](../../../specs/003-shop-agent/spec.md), [Evidence 014](../evidence/EVIDENCE_014.md), [W05 doprinosi](../CONTRIBUTIONS_WEEK05.md), [Evidence 017](../evidence/EVIDENCE_017.md), [Work log](../WORK_LOG.md), [AI usage log](../AI_USAGE_LOG.md). |
+| Reference na rad i dokaze | [Zvanični team repo — W05 commit 7e92b6f](https://github.com/MatijaRadulovic/retro-ai-game/tree/main), [W05 commit](https://github.com/MatijaRadulovic/retro-ai-game/commit/7e92b6f7a04ee89e179e5a9181c1fea9b010539b), [Matijin zaseban W05 izveštaj](WEEKLY_REPORT_week05_Matija.md), [W05 specifikacija](../../../specs/003-shop-agent/spec.md), [Evidence 014](../evidence/EVIDENCE_014.md), [W05 doprinosi](../CONTRIBUTIONS_WEEK05.md), [Evidence 017](../evidence/EVIDENCE_017.md), [Work log](../WORK_LOG.md), [AI usage log](../AI_USAGE_LOG.md). |
 
 ## 2. Moj status
 
