@@ -69,3 +69,34 @@ test("reset forgets everything", () => {
   buffer.press("down", "right");
   assert.deepEqual(sent, ["up", "down"]);
 });
+
+test("a held turn waits one extra tick when the snapshot does not show the sent turn applied yet", () => {
+  const { sent, buffer } = fixture();
+  buffer.press("up", "right");
+  buffer.press("left", "right");
+  buffer.tick("right");
+  assert.deepEqual(sent, ["up"]);
+  buffer.tick("up");
+  assert.deepEqual(sent, ["up", "left"]);
+});
+
+test("a held turn is released at once when the sent turn is already the heading", () => {
+  const { sent, buffer } = fixture();
+  buffer.press("up", "right");
+  buffer.press("left", "right");
+  buffer.tick("up");
+  assert.deepEqual(sent, ["up", "left"]);
+});
+
+test("a turn the server never applied cannot block the buffer forever", () => {
+  const { sent, buffer } = fixture();
+  buffer.press("up", "right");
+  buffer.press("left", "right");
+  buffer.tick("right");
+  buffer.tick("right");
+  assert.deepEqual(sent, ["up", "left"]);
+  buffer.tick("right");
+  buffer.tick("right");
+  buffer.press("down", "right");
+  assert.deepEqual(sent, ["up", "left", "down"]);
+});
