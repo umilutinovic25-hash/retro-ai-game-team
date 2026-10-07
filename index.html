@@ -3,27 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#08131a" />
+    <meta name="theme-color" content="#07061a" />
     <title>RETRO SNAKE</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307061a'/%3E%3Cpath d='M7 22h10a4 4 0 0 0 0-8h-4a4 4 0 0 1 0-8h8' fill='none' stroke='%232ee6a0' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='24' r='3' fill='%23ff4d6d'/%3E%3C/svg%3E" />
   </head>
   <body>
+    <div class="backdrop" aria-hidden="true"><span></span><span></span><span></span><div class="sun"></div><div class="floor"></div></div>
     <main class="app-shell">
       <header class="game-header">
         <div>
           <p class="eyebrow">ARCADE / 001</p>
-          <h1>RETRO SNAKE</h1>
+          <h1 data-text="RETRO SNAKE">RETRO<br /><span>SNAKE</span></h1>
         </div>
         <div class="score-cluster" aria-live="polite">
-          <div class="score-panel">
+          <div class="stat score-panel">
             <span>SCORE</span>
             <strong id="score">0</strong>
           </div>
-          <div class="best-panel">
+          <div class="stat best-panel">
             <span>BEST</span>
             <strong id="best-score">0</strong>
           </div>
         </div>
       </header>
+
+      <nav class="toolbar" aria-label="Game settings">
+        <div class="segmented" role="group" aria-label="Difficulty">
+          <button type="button" data-difficulty="easy" aria-pressed="false">EASY</button>
+          <button type="button" data-difficulty="normal" aria-pressed="true">NORMAL</button>
+          <button type="button" data-difficulty="hard" aria-pressed="false">HARD</button>
+        </div>
+        <div class="toolbar-actions">
+          <button id="colorblind" type="button" class="pill" aria-pressed="false">◐ COLORBLIND</button>
+          <button id="records-open" type="button" class="pill">★ RECORDS</button>
+        </div>
+      </nav>
 
       <section class="progression-hud" aria-label="Run progression" aria-live="polite">
         <div class="progression-row progression-stats">
@@ -38,18 +52,26 @@
         </div>
       </section>
 
-      <section class="game-card" aria-label="Snake igra">
+      <section class="game-card" aria-label="Snake game">
         <div class="status-row">
-          <span id="status" aria-live="polite" data-state="ready">READY</span>
-          <span id="pace">PACE 1.0×</span>
-          <span>20 × 20 GRID</span>
-          <span id="server-connection" data-connection="connecting">CONNECTING</span>
+          <span id="status" class="chip" aria-live="polite" data-state="ready">READY</span>
+          <span class="chip">SPEED <b id="pace">1.0×</b></span>
+          <span class="chip">20 × 20</span>
+          <span id="server-connection" class="chip" data-connection="connecting">CONNECTING</span>
         </div>
         <div class="board-frame">
-          <div id="board" class="board" role="grid" aria-label="Tabla za Snake igru"></div>
-          <section id="game-overlay" class="game-overlay" aria-live="polite">
+          <canvas id="board" class="board" role="img" aria-label="Snake game board"></canvas>
+          <div id="countdown" class="countdown" aria-live="assertive" hidden></div>
+          <section id="game-overlay" class="game-overlay" aria-live="polite" data-state="ready">
             <p id="overlay-title" class="overlay-title">READY?</p>
-            <p id="overlay-message" class="overlay-message">Press any arrow to start</p>
+            <p id="overlay-message" class="overlay-message">PRESS AN ARROW KEY OR TAP A DIRECTION TO START</p>
+            <form id="name-form" class="name-form" hidden>
+              <label for="name-input" id="name-rank">NEW HIGH SCORE</label>
+              <div>
+                <input id="name-input" maxlength="3" autocomplete="off" spellcheck="false" placeholder="AAA" aria-describedby="name-rank" />
+                <button type="submit">SAVE</button>
+              </div>
+            </form>
             <button id="overlay-action" class="overlay-button" type="button" hidden>PLAY AGAIN</button>
           </section>
           <section id="perk-shop" class="perk-shop" aria-label="Perk shop" aria-live="polite" hidden>
@@ -88,23 +110,42 @@
             <p id="shop-message" class="shop-message" role="status" aria-live="polite"></p>
           </section>
         </div>
+        <ul class="legend" aria-label="Pickups">
+          <li><i class="swatch food"></i>FOOD <b>+1</b></li>
+          <li><i class="swatch lucky"></i>LUCKY <b>+1 PT</b></li>
+        </ul>
       </section>
 
-      <section class="controls" aria-label="Kontrole igre">
-        <p><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd><kbd>←</kbd> smer · <kbd>P</kbd> pauza · <kbd>R</kbd> nova partija.</p>
+      <section class="controls" aria-label="Game controls">
+        <p><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd><kbd>←</kbd> direction · <kbd>P</kbd> pause · <kbd>R</kbd> new game · <kbd>S</kbd> shop · <kbd>M</kbd> sound · <kbd>C</kbd> colors. Swipe works too.</p>
         <div class="control-actions">
+          <button id="mute" type="button" class="ghost" aria-label="Sound" aria-pressed="true">♪ ON</button>
           <button id="pause" type="button">PAUSE</button>
           <button id="shop-toggle" type="button" disabled>SHOP</button>
           <button id="restart" type="button">NEW GAME</button>
         </div>
       </section>
-      <nav class="touch-controls" aria-label="Kontrole dodirom">
-        <button data-direction="up" type="button" aria-label="Gore">↑</button>
-        <button data-direction="left" type="button" aria-label="Levo">←</button>
-        <button data-direction="down" type="button" aria-label="Dole">↓</button>
-        <button data-direction="right" type="button" aria-label="Desno">→</button>
+      <nav class="touch-controls" aria-label="Touch controls">
+        <button data-direction="up" type="button" aria-label="Up">↑</button>
+        <button data-direction="left" type="button" aria-label="Left">←</button>
+        <button data-direction="down" type="button" aria-label="Down">↓</button>
+        <button data-direction="right" type="button" aria-label="Right">→</button>
       </nav>
     </main>
+    <dialog id="records-dialog" class="records" aria-labelledby="records-title">
+      <form method="dialog">
+        <h2 id="records-title">★ HALL OF FAME</h2>
+        <ol id="records-list" class="records-list"></ol>
+        <p id="records-empty" class="records-empty">NO SCORES YET — GO SET ONE.</p>
+        <dl class="stats">
+          <div><dt>GAMES</dt><dd id="stat-games">0</dd></div>
+          <div><dt>FOOD EATEN</dt><dd id="stat-food">0</dd></div>
+          <div><dt>LONGEST SNAKE</dt><dd id="stat-length">0</dd></div>
+          <div><dt>BEST COMBO</dt><dd id="stat-combo">—</dd></div>
+        </dl>
+        <button type="submit" class="overlay-button">CLOSE</button>
+      </form>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
