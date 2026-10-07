@@ -1,6 +1,6 @@
 # Evidence 014 — Week 05 Shop Strategist (bounded agentic feature)
 
-Preserves the facts of this milestone. Anything not captured is marked **not recorded**. One live-provider run (L01) was done on 2026-10-07 by the user with their own free-tier key; the manual browser check was not yet done when this record was written.
+Preserves the facts of this milestone. Anything not captured is marked **not recorded**. One live-provider run (L01) and the manual browser acceptance check were completed by the user on 2026-10-07. The manual check is recorded below as user-reported evidence. No screenshot or independent browser automation was captured for the Strategist check.
 
 ## Record and task context
 
