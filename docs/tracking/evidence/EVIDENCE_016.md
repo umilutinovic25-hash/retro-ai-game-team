@@ -37,4 +37,4 @@
 
 - The interpolated duplicate-snapshot path is covered by a focused pure helper test and the app's browser smoke suite; no human visual evaluation of animation smoothness was performed.
 - The init gate's stale/failure behavior is covered in unit tests and wired into the client; a delayed old-WebSocket race was not separately forced in E2E.
-- All edits remain local and uncommitted on `best-game-phase1`; no push/publish was performed.
+- The implementation and evidence were committed as `90f853a` (`Fix remaining Phase 1 review findings`) and pushed to `fork/best-game-phase1` at the user's earlier explicit push request shown in the screenshot. No PR was opened. Human visual animation review remains outstanding.
