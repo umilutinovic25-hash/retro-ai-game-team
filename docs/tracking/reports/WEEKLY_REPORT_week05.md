@@ -47,7 +47,3 @@ AI coding agent je korišćen za razradu slojevite arhitekture, implementaciju o
 - Završni slobodni tekst modela nije u potpunosti semantički upoređen sa rezultatima alata; izvršivi plan se zasebno proverava evaluatorom. To ostaje dokumentovan rezidualni rizik.
 - Sve planirane W05 provere su završene; nema preostalih provera koje blokiraju predaju.
 - Sledeći korak: poslati ovaj izveštaj Marku uz [Evidence 014](../evidence/EVIDENCE_014.md). Dodatno kodiranje nije potrebno za završetak W05 zadatka.
-
-## 7. Poverljiva napomena za tutora
-
-Nema dodatne napomene.
