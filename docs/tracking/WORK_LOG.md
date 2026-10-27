@@ -400,3 +400,9 @@ Append one concise entry for each substantive implementation, review, or documen
 - **Documents:** updated personal-verification table/status in WEEKLY_REPORT_week08.md, added H01/V01 and explicit fake-only choice to EVIDENCE_W08.md, recorded T-17. Preparing refreshed PDF/source package v2; earlier package preserved. Existing 225/225, 50 security, 18/18 W05 and 9/9 production browser results remain applicable because runtime/tests are unchanged.
 
 - **Delivery preference:** user selected "Samo osveži paket za predaju". No remote push, email or public deployment requested. Refreshed report remains two pages; text/glyph checks and latest page renders verified. Source code/test checkpoint cbc273c is unchanged; the new commit records only H01/V01 and report metadata. Temporary browser tab and fake server are closed after the saved proof.
+
+## 2026-10-27 — Clarify report authorship
+
+- **User correction:** the report must identify Uroš as the author/owner of his individual work, with AI as assistance rather than presenting AI as the sole author.
+- **Change:** rewrote weekly-report role/status/AI section in the first person and aligned current evidence attribution. Preserved truthful disclosure of code/test suggestions, debugging, review and automated assistance, plus the historical AI usage records; no claim that all code was manually written without assistance. Human functional confirmation H01 remains.
+- **Scope/verification:** documentation-only; no application/test changes, so prior 225/225 and 18/18 + 9/9 results remain applicable. Re-render and inspect the two-page PDF, validate links/text, refresh committed source/checksums in a clearly named FINAL package. Earlier packages preserved; no sending or remote push.

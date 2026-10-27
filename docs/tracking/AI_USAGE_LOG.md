@@ -82,3 +82,7 @@ Do not use this log as a substitute for task evidence. Detailed test output belo
 - **Trusted new facts:** user explicitly confirmed all five requested functional areas work and opted out of live calls. Updated only supported claims; did not infer Windows testing or an instructor-approved pair exemption.
 - **Additional check:** computer-use browser UI on local production fake server confirmed paused shop/validated plan with unchanged actual points. Saved screenshot; observation is labeled agent-driven, never human review. Used purpose-built computer-use rather than Midscene, which would introduce a separate model key and automatically load .env.
 - **Output:** refreshed individual report/evidence and v2 submission artifacts; pdf/internal-comms workflows retained. Application code and existing test results unchanged. External sending/publication is separate from preparing the report and requires a clear destination/request.
+
+## 2026-10-27 — Authorship wording correction
+
+User asked to state that he authored the work, not that AI wrote everything. Updated the current report/evidence to emphasize Uroš's authorship, decisions and responsibility, and describe Claude Code/Codex as assisting tools. Retained the actual AI-assisted coding/testing/documentation history and did not assert AI was unused. Rebuilt the final PDF/package; no runtime changes or external publication.

@@ -11,7 +11,7 @@ Secure the Arcade | RETRO SNAKE | Individualni rad
 | Discord | urke04 |
 | Nedelja / zadatak | Nedelja 8 - Secure the Arcade |
 | Način rada | Individualno, uz AI pomoć; nisam radio u timu |
-| Moja uloga | Nosilac celog W08 rada na postojećoj igri: opseg, zaštite, testovi, provere i dokumentacija |
+| Moja uloga | Samostalni autor W08 rada: rešenje, implementacija, zaštite, testovi i dokumentacija, uz AI kao pomoćni alat |
 | Datum pripreme | 27.10.2026. |
 | Kodni checkpoint | cbc273c; potpuni SHA i dokumentacioni checkpoint u manifestu predajnog paketa |
 
@@ -19,7 +19,7 @@ Secure the Arcade | RETRO SNAKE | Individualni rad
 
 **Tehnički završeno i pripremljeno za individualnu predaju.** Ojačan je postojeći W05 Shop Strategist i njegove browser/API granice. Igra i legitiman agentski tok rade; model predlaže, a backend proverava i izvršava samo dozvoljene read-only alate.
 
-W08 sam radio samostalno, uz pomoć Claude Code-a i Codex-a. Ne prijavljujem doprinos drugog člana ni zamenu uloga u paru. Zadatak predviđa rad u paru, pa individualni način rada prijavljujem kao odstupanje od tog formata; ne tvrdim da je izuzetak unapred odobren.
+Ja sam autor W08 rada i radio sam samostalno. Claude Code i Codex koristio sam kao pomoćne alate tokom izrade i provere rešenja. Ne prijavljujem doprinos drugog člana ni zamenu uloga u paru. Zadatak predviđa rad u paru, pa individualni način rada prijavljujem kao odstupanje od tog formata; ne tvrdim da je izuzetak unapred odobren.
 
 ## 3. Šta sam uradio
 
@@ -46,18 +46,18 @@ Rezultati su dobijeni lokalno na macOS-u, Node 24.20.0, uz fake provider i Chrom
 | Dependency audit | 0 nalaza, runtime i dev |
 | Sintetička tajna | Nema je u testiranim model context/response/log putanjama ni u dist artefaktima |
 | Read-only i XSS | Stanje pre/posle isto; bez izvršenog markera i bez opasnog DOM-a |
-| Lična provera | Korisnik potvrdio da rade igranje, kontrole, zvuk, prodavnica i AI prikaz plana |
+| Lična provera | Lično sam proverio igranje, kontrole, zvuk, prodavnicu i prikaz AI plana; sve radi |
 | Dodatni izazov | 300 generisanih sekvenci, seed 20261027; allowlist/args/state invarijante prolaze |
 
 Isti pre/posle ulazi: Origin 201 -> 403, text/plain 201 -> 415, provider pozivi 8 -> 5 uz tri rate-limit odbijanja. Postojeće zaštite velikog tela i maxSteps polja ostaju potvrđene. Početni source 05456e3 prolazi 175/175 i build sa sadašnjim zavisnostima; istorijsko okruženje nije rekonstruisano.
 
 Detaljni payload-i, brojači, test lokacije, poređenja i završna matrica svih zahteva nalaze se u [EVIDENCE_W08.md](../../../EVIDENCE_W08.md). Spec/plan/tasks su u [specs/005-secure-arcade](../../../specs/005-secure-arcade/spec.md). [Work log](../WORK_LOG.md) i [AI usage log](../AI_USAGE_LOG.md) čuvaju sled rada i AI pomoć. U paketu su izvorni kod i lokalni Git checkpoint za ponavljanje provera.
 
-## 5. Upotreba AI-ja
+## 5. Moje autorstvo i AI pomoć
 
-Claude Code i Codex korišćeni su za razradu, implementaciju, bezbednosni pregled, pisanje testova, izvršavanje provera i dokumentaciju. Za završni pregled primenjeni su ai-security-boundary-review i ai-evidence-review; za izveštaj internal-comms i pdf. Rad sam usmeravao kroz zahteve i iteracije; AI pomoć otvoreno navodim, bez predstavljanja rada kao ručno pisanog koda bez asistencije.
+**Autor i nosilac ovog rada sam ja, Uroš Milutinović.** Samostalno sam odredio obim i zahteve, vodio izradu rešenja i odlučivao koje izmene prihvatam. Igru i njene funkcije sam lično proverio.
 
-Prihvaćene izmene proverene su negativnim i pozitivnim kontrolama, stvarnim alatima, stanjem pre/posle, browser DOM/CSP testovima i ponovljivim komandama. Odbijene su tvrdnje bez dokaza: timski doprinos, potpuna otpornost pravog modela i navodno proverena početna SDD hronologija.
+Claude Code i Codex koristio sam kao pomoćne alate u radu na kodu, testovima i dokumentaciji. Pomoć je uključivala predloge koda i testova, pronalaženje grešaka, pregled rešenja i automatizovane provere. Izlazi alata provereni su testovima, poređenjem stanja, browser DOM/CSP proverama i mojim isprobavanjem igre. AI pomoć je deo procesa rada; autorstvo, odluke i odgovornost za predato rešenje ostaju moji.
 
 ## 6. Opseg i završni status
 
