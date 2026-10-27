@@ -194,6 +194,10 @@ export async function runAgent(input: RunAgentInput): Promise<AgentOutcome> {
       run.log.push({ step: stepNo, model: call.model, decision, validation, latencyMs: call.latencyMs, ...(tool ? { tool } : {}), ...(call.usage ? { usage: call.usage } : {}) });
     };
 
+    // Timers can run after promise continuations; the absolute deadline is authoritative.
+    if (signal?.aborted) return finish("cancelled");
+    if (now() >= deadlineAt) return finish("deadline");
+
     const envelope = parseEnvelope(call.value);
     if (!envelope) {
       record("rejected", "rejected");
@@ -210,6 +214,8 @@ export async function runAgent(input: RunAgentInput): Promise<AgentOutcome> {
         record("final", "rejected");
         return finish("stale");
       }
+      if (signal?.aborted) return finish("cancelled");
+      if (now() >= deadlineAt) return finish("deadline");
       record("final", "accepted");
       return finish("completed", result);
     }
@@ -245,6 +251,8 @@ export async function runAgent(input: RunAgentInput): Promise<AgentOutcome> {
       return finish("stale");
     }
 
+    if (signal?.aborted) return finish("cancelled");
+    if (now() >= deadlineAt) return finish("deadline");
     run.toolCallCount += 1;
     if (tool.name === "evaluate_perk_plan") run.evaluatorCallCount += 1;
     const toolStarted = now();
@@ -255,6 +263,8 @@ export async function runAgent(input: RunAgentInput): Promise<AgentOutcome> {
       record("tool_request", "rejected", tool.name);
       return finish("tool_failed");
     }
+    if (signal?.aborted) return finish("cancelled");
+    if (now() >= deadlineAt) return finish("deadline");
     let size = Number.POSITIVE_INFINITY;
     try {
       size = Buffer.byteLength(JSON.stringify(result) ?? "");

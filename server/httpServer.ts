@@ -187,6 +187,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse,
         if (!isRecord(body) || Object.keys(body).length !== 0) {
           throw new HttpError(400, "invalid_request", "The AI coach does not accept request fields.", "INVALID_REQUEST");
         }
+        manager.getCoachContext(gameId); // Validate resource/status before consuming an admission token.
         const controller = new AbortController();
         const onClose = () => { if (!response.writableEnded) controller.abort(); };
         response.once("close", onClose);
@@ -265,7 +266,15 @@ export function createGameHttpServer(
   const webSockets = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (request, socket, head) => {
-    const url = new URL(request.url ?? "/", "http://localhost");
+    const rejectMalformed = () => {
+      security.log({ event: "http.request.rejected", correlationId: newCorrelationId(), reasonCode: "INVALID_REQUEST", outcome: "denied", status: 400 });
+      socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+    };
+    let url: URL;
+    try { url = new URL(request.url ?? "/", "http://localhost"); } catch {
+      rejectMalformed();
+      return;
+    }
     const match = /^\/api\/games\/([^/]+)\/events$/.exec(url.pathname);
     if (!isAllowedHost(request) || !isAllowedOrigin(request, security.allowedOrigins, Boolean(security.staticRoot))) {
       security.log({ event: "http.request.rejected", correlationId: newCorrelationId(), reasonCode: "ORIGIN_NOT_ALLOWED", outcome: "denied", status: 403 });
@@ -278,7 +287,11 @@ export function createGameHttpServer(
       socket.destroy();
       return;
     }
-    const gameId = decodeURIComponent(match[1]);
+    let gameId: string;
+    try { gameId = decodeURIComponent(match[1]); } catch {
+      rejectMalformed();
+      return;
+    }
     try {
       manager.get(gameId);
     } catch {

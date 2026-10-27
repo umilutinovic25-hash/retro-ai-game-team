@@ -140,3 +140,34 @@ test("T15 client-supplied score or state is not accepted by any game action and 
     assert.equal(JSON.stringify(app.manager.get(app.id)), before, "no field from the client reached the authoritative state");
   } finally { await app.close(); }
 });
+
+test("T01/T02 rejected HTTP input has zero real tool executions as well as zero provider attempts; valid input still succeeds", async () => {
+  const { TOOLS } = await import("../../server/agent/tools.ts");
+  const originals = Object.values(TOOLS).map((tool) => ({ tool, execute: tool.execute }));
+  const executed: string[] = [];
+  for (const { tool, execute } of originals) tool.execute = (args, context) => {
+    executed.push(tool.name);
+    return execute(args, context);
+  };
+  const script = scripted(happy());
+  const app = await startApp({ transport: script.transport });
+  const before = JSON.stringify(app.manager.get(app.id));
+  try {
+    for (const [body, expected] of [["{", 400], [null, 400], [{ goal: null }, 400], [{ ...GOAL, role: "admin" }, 400],
+      [{ ...GOAL, maxSteps: 999 }, 400], [{ ...GOAL, pad: "x".repeat(40_000) }, 413]] as const) {
+      assert.equal((await app.post(app.agentUrl, body)).status, expected);
+    }
+    assert.equal((await app.post(app.agentUrl, GOAL, { ...JSON_HEADERS, origin: "https://evil.example" })).status, 403);
+    assert.equal(script.calls.length, 0, "no provider attempts across rejected initial requests");
+    assert.deepEqual(executed, [], "no real business tool execute call across rejected initial requests");
+    assert.equal(JSON.stringify(app.manager.get(app.id)), before);
+    const positive = await app.post(app.agentUrl, GOAL);
+    assert.equal(((await positive.json()) as { run: { status: string } }).run.status, "completed");
+    assert.equal(script.calls.length, 3);
+    assert.deepEqual(executed, ["get_shop_state", "evaluate_perk_plan"]);
+    assert.equal(JSON.stringify(app.manager.get(app.id)), before);
+  } finally {
+    for (const { tool, execute } of originals) tool.execute = execute;
+    await app.close();
+  }
+});

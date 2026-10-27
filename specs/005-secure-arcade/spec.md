@@ -22,7 +22,7 @@ Scope: harden the existing **W05 Shop Strategist** flow (`POST /api/games/:id/sh
 | HTTP body | 16 KiB (bytes) | `SECURITY_LIMITS.maxBodyBytes` | checked on `Content-Length` first, then while streaming. Kept from W04 (goal body is ~35 bytes) |
 | Goal text | fixed literal `plan_next_purchases` | `AGENT_GOAL` | no free-text goal exists |
 | Tool result | 4 KiB | `DEFAULT_LIMITS.maxToolResultBytes` | stricter than the 8 KiB example; results are tiny |
-| Model response | 16 KiB (adapter read cap), 2048 output tokens | `geminiTransport.readLimitedResponse`, `googleTransport` | |
+| Model response | 16 KiB (adapter read cap), candidate text 4096 UTF-16 code units, 2048 output tokens | `geminiTransport.readLimitedResponse`, `googleTransport` | |
 | Model decisions per run | 5 (3 tools + 1 correction + final) | `maxAgentSteps` | W05 value kept |
 | Provider attempts per run | 8 total, 2 per step, 2 fallbacks | `maxProviderAttempts` | W05 value kept; retries/fallbacks share it |
 | Tool executions per run | 4 (evaluator 2) | `maxToolCalls` | |
@@ -59,3 +59,25 @@ Limit overrides go through `resolveLimits`: `undefined` keeps the default, anyth
 ## Out of scope / known limits
 
 Authentication (the demo has none; game ids are unguessable UUIDs and are the only resource handle, not a credential); a leaderboard or anti-cheat (local records are labelled untrusted and never sent to the server); HTTPS/HSTS; multi-process rate limiting; live provider behaviour under prompt injection.
+
+## Review follow-up acceptance (2026-10-27)
+
+- I6 / T12: immediately after a provider result and before tool dispatch or final acceptance, cancellation and the absolute total deadline are rechecked. A result at or after 45000 ms is refused; the same valid final at 44999 ms succeeds. A tool may finish after its start deadline, but no late result is accepted or forwarded.
+- I1 / I8 / T17: malformed WebSocket upgrade URLs and percent-encoded resource IDs return controlled HTTP 400 without uncaught exceptions. The same process must still answer health checks and stream valid game snapshots. Logs contain only a safe rejection code, never the URL.
+
+- I6 / T13: retry/fallback cannot overlap an unfinished timed-out attempt within a run. Cooperative aborts remain retryable within the existing budget; an attempt still pending after abort ends that run and occupies orphan capacity until settlement. This applies to Shop Strategist and shop advice, which share admission.
+
+## Adjacent boundary follow-up (2026-10-27)
+
+- Coach shares admission capacity: pre-cancelled requests make zero provider attempts; timeout/cancellation returns promptly even if transport ignores AbortSignal. Such unfinished work occupies orphan capacity and cannot trigger overlapping fallback. Only validated successful coaching is cached; cancellation/failure permits a subsequent legitimate retry. Per-attempt timeout remains 3500 ms, at most the three allowlisted models.
+- Production static serving checks canonical paths: symlink targets outside the canonical build root or inside dot directories are refused with 404. Ordinary assets and aliases to public assets inside the root remain available. This assumes operator-controlled build files; concurrent hostile filesystem mutation is outside the proof.
+
+- Coach resource/status validation runs before admission: missing game is 404, unfinished game is 409, neither spends a rate token or invokes provider; a subsequent valid finished run can still be admitted.
+
+## Completeness proof follow-up
+
+- T16 / assignment C: the production browser smoke checks the actual Canvas pixels and a nonzero Web Audio waveform in a running native AudioContext under the active CSP. Monitoring may tap the real audio graph without replacing sound generation. Human hearing/output-device quality is not claimed.
+- T03/T08: use two synthetic game containers with distinct numerical state/history. Valid allowlisted calls (no extra gameId argument) must read only the selected container; provider transcript must contain its expected data and exclude the other container's marker, with both snapshots/history unchanged. This proves demo tool scope, not authenticated ownership.
+
+- Text lengths in final-summary/finding contracts use JavaScript String.length (UTF-16 code units), not grapheme clusters. HTTP/tool/provider size caps use encoded bytes. T06 checks the production streaming reader at 16384 bytes and one byte over, including UTF-8 multibyte text, independently of model/final schema rejection.
+- T01/T02 proof includes direct instrumentation of the actual business-tool execute methods: rejected initial requests leave provider attempts and executed tools at zero, state identical; a legitimate request subsequently completes 3 provider decisions and 2 real tool executions.

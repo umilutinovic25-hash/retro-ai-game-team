@@ -25,7 +25,8 @@ try {
   const before = runProbe(worktree);
   const after = runProbe(repo);
   const head = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
-  console.log(`scenario | before (${ref}) | after (${head})`);
+  const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=normal"], { encoding: "utf8" }).trim().length > 0;
+  console.log(`scenario | before (${ref}) | after (${head}${dirty ? " + working tree" : ""})`);
   for (const key of Object.keys(after)) console.log(`${key} | ${JSON.stringify(before[key] ?? null)} | ${JSON.stringify(after[key])}`);
 } finally {
   execFileSync("git", ["worktree", "remove", "--force", worktree], { stdio: "ignore" });

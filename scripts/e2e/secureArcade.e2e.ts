@@ -131,6 +131,60 @@ async function main(): Promise<void> {
       assert.deepEqual(await page.evaluate(() => (window as unknown as { __violations: string[] }).__violations), [], "the CSP blocked nothing the game needs");
     });
 
+    await check("S2a", "T16 production Canvas and native Web Audio output work under the active CSP", async () => {
+      const audioPage = await context.newPage();
+      try {
+        await audioPage.addInitScript(() => {
+          const violations: string[] = [];
+          (window as unknown as { __violations: string[] }).__violations = violations;
+          document.addEventListener("securitypolicyviolation", (event) => violations.push(`${event.effectiveDirective}|${event.blockedURI}`));
+          const state = { peak: 0, meters: [] as Array<{ context: AudioContext; analyser: AnalyserNode }> };
+          (window as unknown as { __w08Audio: typeof state }).__w08Audio = state;
+          const createGain = AudioContext.prototype.createGain;
+          AudioContext.prototype.createGain = function () {
+            const gain = createGain.call(this);
+            const connect = gain.connect.bind(gain);
+            gain.connect = ((destination: AudioNode, output?: number, input?: number) => {
+              if (destination === this.destination) {
+                // Pass through a real analyser before the real destination; do not replace the sound engine.
+                const analyser = this.createAnalyser();
+                analyser.fftSize = 256;
+                connect(analyser);
+                analyser.connect(destination);
+                state.meters.push({ context: this, analyser });
+                return destination;
+              }
+              return connect(destination, output, input);
+            }) as typeof gain.connect;
+            return gain;
+          };
+          window.setInterval(() => {
+            for (const { analyser } of state.meters) {
+              const samples = new Float32Array(analyser.fftSize);
+              analyser.getFloatTimeDomainData(samples);
+              for (const sample of samples) state.peak = Math.max(state.peak, Math.abs(sample));
+            }
+          }, 10);
+        });
+        await audioPage.goto(url);
+        await audioPage.waitForSelector('#server-connection[data-connection="online"]');
+        await audioPage.keyboard.press("ArrowUp");
+        await audioPage.waitForFunction(() => {
+          const audio = (window as unknown as { __w08Audio: { peak: number; meters: Array<{ context: AudioContext }> } }).__w08Audio;
+          return audio.peak > 0.00001 && audio.meters.some(({ context }) => context.state === "running");
+        });
+        const litPixels = await audioPage.evaluate(() => {
+          const canvas = document.querySelector<HTMLCanvasElement>("#board")!;
+          const data = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+          let lit = 0;
+          for (let i = 0; i < data.length; i += 4 * 97) if (data[i] + data[i + 1] + data[i + 2] > 40) lit += 1;
+          return lit;
+        });
+        assert.ok(litPixels > 20, "production Canvas draws visible game content");
+        assert.deepEqual(await audioPage.evaluate(() => (window as unknown as { __violations: string[] }).__violations), [], "audio/Canvas require no CSP bypass");
+      } finally { await audioPage.close(); }
+    });
+
     await check("S3", "T04/T05 hostile model text stays text: no execution and a safe DOM", async () => {
       await context.route("**/api/games/*/shop-agent", async (route) => {
         await route.fulfill({

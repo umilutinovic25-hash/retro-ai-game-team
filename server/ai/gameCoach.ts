@@ -2,6 +2,7 @@ import { ADVICE_MODELS, type AdviceModel } from "../../src/ai/shopAdvice.ts";
 import { validateGameCoachResult, type GameCoachResult } from "../../src/ai/gameCoach.ts";
 import type { GameCoachContext, GameSessionManager } from "../gameSession.ts";
 import { ProviderFailure, type ProviderResponse } from "./shopAdvice.ts";
+import { adoptOrphanedProviderWork } from "../security/providerWork.ts";
 
 export type GameCoachTransport = (
   model: AdviceModel,
@@ -49,11 +50,26 @@ async function timedAttempt(
   if (signal?.aborted) controller.abort();
   else signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(abort, ATTEMPT_TIMEOUT_MS);
+  let work: Promise<ProviderResponse> | undefined;
+  let settled = false;
   try {
-    return await transport(model, context, controller.signal);
-  } catch (error) {
-    if (signal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    if (controller.signal.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    work = transport(model, context, controller.signal);
+    work.then(() => { settled = true; }, () => { settled = true; });
     if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
+    const response = await Promise.race([
+      work,
+      new Promise<never>((_resolve, reject) => {
+        controller.signal.addEventListener("abort", () => reject(new ProviderFailure("transient", 408, undefined, "timeout")), { once: true });
+      }),
+    ]);
+    if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
+    return response;
+  } catch (error) {
+    const unfinished = work !== undefined && controller.signal.aborted && !settled;
+    if (unfinished) adoptOrphanedProviderWork(work!);
+    if (signal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    if (controller.signal.aborted) throw new ProviderFailure(unfinished ? "terminal" : "transient", 408, undefined, "timeout");
     throw error;
   } finally {
     clearTimeout(timer);
@@ -71,6 +87,7 @@ export function createGameCoach(transport: GameCoachTransport | null): GameCoach
     for (const model of ADVICE_MODELS) {
       try {
         const response = await timedAttempt(transport, model, safe, signal);
+        if (signal?.aborted) return unavailable("cancelled");
         const candidate = response.value;
         if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
           const output = candidate as Record<string, unknown>;
@@ -90,13 +107,14 @@ export function createGameCoach(transport: GameCoachTransport | null): GameCoach
   return {
     async coach(manager, gameId, signal) {
       const context = manager.getCoachContext(gameId);
+      if (signal?.aborted) return unavailable("cancelled");
       const key = `${gameId}:${context.runNumber}`;
       const cached = completed.get(key);
       if (cached) return cached;
       const active = pending.get(key);
       if (active) return active;
       const operation = perform(context, signal).then((result) => {
-        completed.set(key, result);
+        if (result.status === "coaching") completed.set(key, result);
         while (completed.size > MAX_CACHED_RUNS) completed.delete(completed.keys().next().value!);
         return result;
       }).finally(() => pending.delete(key));

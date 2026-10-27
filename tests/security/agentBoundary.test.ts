@@ -79,6 +79,8 @@ test("T07 unknown tools and inherited property names are never executable", asyn
     const script = scripted([toolRequest(name, { score: 999_999 }), SHOP_STATE]);
     const outcome = await runAgent({ manager, gameId: id, transport: script.transport, deps: FAST });
     assert.equal(outcome.stopReason, "unknown_tool", String(name));
+    assert.equal(outcome.providerAttempts, 1);
+    assert.equal(script.calls.length, 1);
     assert.equal(outcome.toolCalls, 0, "zero tool executions");
     assert.deepEqual(mutations(), []);
     assert.equal(snapshotOf(manager, id), before);
@@ -270,4 +272,122 @@ test("D3 the model is offered only the fixed tool allowlist and a fixed provider
   assert.equal(urls.length, 0);
   await transport(ADVICE_MODELS[0], script.calls[0].request, new AbortController().signal).catch(() => null);
   assert.ok(urls.every((url) => url.startsWith(`${GEMINI_ORIGIN}/`)), "fixed provider origin");
+});
+
+test("T12 a provider result at the total deadline cannot start a tool, even before the timer callback runs", async () => {
+  for (const elapsed of [44_999, 45_000, 45_001]) {
+    let clock = 0;
+    const { manager, id } = pausedGame(3);
+    const before = snapshotOf(manager, id);
+    const script = scripted([{ run: () => { clock = elapsed; return SHOP_STATE.value; } }]);
+    const outcome = await runAgent({ manager, gameId: id, transport: script.transport, deps: { ...FAST, now: () => clock } });
+    assert.equal(outcome.toolCalls, elapsed < 45_000 ? 1 : 0, `tool executions at ${elapsed} ms`);
+    if (elapsed >= 45_000) {
+      assert.equal(outcome.stopReason, "deadline");
+      assert.equal(script.calls.length, 1);
+    }
+    assert.equal(snapshotOf(manager, id), before);
+    manager.close();
+  }
+});
+
+test("T12 a valid final received at the total deadline never becomes success; the value just before it still works", async () => {
+  for (const elapsed of [44_999, 45_000, 45_001]) {
+    let clock = 0;
+    const { manager, id } = pausedGame(3);
+    const script = scripted([SHOP_STATE, evalPlan(["extra_xp"]), { run: () => {
+      clock = elapsed;
+      return finalAnswer(validResult({ plan: ["extra_xp"] })).value;
+    } }]);
+    const outcome = await runAgent({ manager, gameId: id, transport: script.transport, deps: { ...FAST, now: () => clock } });
+    assert.equal(outcome.stopReason, elapsed < 45_000 ? "completed" : "deadline", `final at ${elapsed} ms`);
+    assert.equal(outcome.result !== undefined, elapsed < 45_000);
+    assert.equal(script.calls.length, 3);
+    assert.equal(outcome.toolCalls, 2);
+    manager.close();
+  }
+});
+
+test("T17 cancellation during provider completion prevents tool dispatch and final success", async () => {
+  for (const final of [false, true]) {
+    const controller = new AbortController();
+    const { manager, id } = pausedGame(3);
+    const script = scripted([
+      ...(final ? [SHOP_STATE, evalPlan(["extra_xp"])] : []),
+      { run: () => { controller.abort(); return final ? finalAnswer(validResult()).value : SHOP_STATE.value; } },
+    ]);
+    const outcome = await runAgent({ manager, gameId: id, transport: script.transport, deps: FAST, signal: controller.signal });
+    assert.equal(outcome.stopReason, "cancelled");
+    assert.equal(outcome.result, undefined);
+    assert.equal(outcome.toolCalls, final ? 2 : 0);
+    manager.close();
+  }
+});
+
+test("T12 tool work crossing the deadline is not forwarded to another model step", async () => {
+  for (const elapsed of [44_999, 45_000]) {
+    let clock = 0;
+    const { manager, id } = pausedGame(0);
+    const tools = { ...TOOLS, get_shop_state: { ...TOOLS.get_shop_state, execute: (...args: Parameters<typeof TOOLS.get_shop_state.execute>) => {
+      const result = TOOLS.get_shop_state.execute(...args);
+      clock = elapsed;
+      return result;
+    } } };
+    const script = scripted([SHOP_STATE, finalAnswer(validResult({ summary: "Save points.", plan: [], evidence: [{ source: "get_shop_state", step: 1, finding: "0 points." }] }))]);
+    const outcome = await runAgent({ manager, gameId: id, transport: script.transport, tools,
+      deps: { ...FAST, now: () => clock }, limits: { toolTimeoutMs: 50_000 } });
+    // The generous per-tool timeout isolates the TOTAL deadline instead of a different earlier guard.
+    assert.equal(outcome.stopReason, elapsed < 45_000 ? "completed" : "deadline");
+    assert.equal(script.calls.length, elapsed < 45_000 ? 2 : 1);
+    manager.close();
+  }
+});
+
+test("T17 a transport that synchronously cancels and then hangs still releases the run without waiting", async () => {
+  const { runAttempt } = await import("../../server/agent/attempt.ts");
+  const { ADVICE_MODELS } = await import("../../src/ai/shopAdvice.ts");
+  const controller = new AbortController();
+  let release = () => {};
+  const operation = runAttempt(() => {
+    controller.abort();
+    return new Promise((resolve) => { release = () => resolve({ value: null }); });
+  }, ADVICE_MODELS[0], { goal: "plan_next_purchases", tools: [], transcript: [], budget: { stepsLeft: 1, toolCallsLeft: 1 } }, 1_000, controller.signal);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      assert.rejects(operation, (error: unknown) => error instanceof ProviderFailure && error.errorClass === "cancelled"),
+      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error("cancellation was missed")), 200); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+    release();
+    await operation.catch(() => {});
+  }
+});
+
+test("T03/T08 valid tool arguments read only the selected game's actual data among two distinct containers", async () => {
+  const { manager, id } = pausedGameAfterLoss(3);
+  const b = manager.create();
+  type Stored = { gameState: { perkPoints: number }; history: ReturnType<typeof manager.getRunHistory> };
+  const storedB = (manager as unknown as { sessions: Map<string, Stored> }).sessions.get(b.id)!;
+  storedB.gameState.perkPoints = 77;
+  storedB.history = [{ score: 987654, level: 9, perksAtEnd: { extraXp: 4, luck: 4, extraLife: 2 }, endedBy: "won" }];
+  const readHistory = manager.getRunHistory.bind(manager);
+  const expected = readHistory(id);
+  const before = JSON.stringify([manager.get(id), manager.get(b.id), expected, readHistory(b.id)]);
+  const reads: string[] = [];
+  manager.getRunHistory = (gameId) => { reads.push(gameId); return readHistory(gameId); };
+  const script = scripted([SHOP_STATE, toolRequest("get_recent_runs", { limit: 5 }), evalPlan(["extra_xp"]), finalAnswer(validResult())]);
+  try {
+    const outcome = await runAgent({ manager, gameId: id, transport: script.transport, deps: FAST });
+    assert.equal(outcome.status, "completed");
+    assert.equal(outcome.toolCalls, 3);
+    assert.equal(script.calls.length, 4);
+    assert.ok(reads.length >= 1 && reads.every((gameId) => gameId === id), "all real tool contexts read the selected container");
+    const transcript = script.calls[3].request.transcript;
+    assert.equal((transcript[0].result as { perkPoints: number }).perkPoints, 3);
+    assert.deepEqual((transcript[1].result as { runs: unknown[] }).runs, expected);
+    assert.equal(JSON.stringify(script.calls).includes("987654"), false, "other container's numeric history never enters model context");
+    assert.equal(JSON.stringify([manager.get(id), manager.get(b.id), readHistory(id), readHistory(b.id)]), before);
+  } finally { manager.close(); }
 });

@@ -98,6 +98,17 @@ npm run test:e2e
 
 Pokreće backend sa lažnim providerom (Flash vraća 503, Flash-Lite odgovara) i Vite klijent na slobodnim portovima (bez `npx`, radi i na Windows-u), pa u headless Chromium-u proverava savet, fallback, da savet ne kupuje, kupovinu dok savet čeka, zatvaranje prodavnice tokom zahteva i poruku bez ključa. Rezultati: [Evidence 013](docs/tracking/evidence/EVIDENCE_013.md).
 
+## W08 — Secure the Arcade
+
+Provera sa fake provider-om, bez pravog API ključa (Node 24 je provereno okruženje; Chromium instalirati jednom komandom `npx playwright install chromium`):
+
+```bash
+npm run test:security
+npm run security:prepost
+```
+
+Prva komanda proverava security testove, production build i Chromium/CSP; druga poredi iste lokalne probe sa početnim commitom `05456e3`. Kompletna regresija uključuje i `npm test` i `npm run test:e2e`. [EVIDENCE_W08.md](EVIDENCE_W08.md) sadrži rezultate T00–T17, ograničenja, demo i status predaje; [W08 spec](specs/005-secure-arcade/spec.md) definiše invarijante i limite. Runtime produkcioni profil: `npm run build`, zatim `npm run start:prod`.
+
 ## Week 3 baseline i Week 4 proširenje
 
 | | Week 3 (baseline) | Week 4 (proširenje) |

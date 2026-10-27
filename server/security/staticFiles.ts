@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { realpath, stat } from "node:fs/promises";
 import type { ServerResponse } from "node:http";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { extname, join, normalize, relative as relativePath, resolve, sep } from "node:path";
 
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -33,8 +33,13 @@ export async function serveStatic(root: string, urlPath: string, response: Serve
   const wanted = relative === "/" ? "/index.html" : relative;
   const file = normalize(join(base, wanted));
   if (file !== base && !file.startsWith(base + sep)) return false;
+  let target: string;
   try {
-    const info = await stat(file);
+    const canonicalBase = await realpath(base);
+    target = await realpath(file);
+    if (target !== canonicalBase && !target.startsWith(canonicalBase + sep)) return false;
+    if (relativePath(canonicalBase, target).split(sep).some((segment) => segment.startsWith("."))) return false;
+    const info = await stat(target);
     if (!info.isFile()) return false;
   } catch {
     return false;
@@ -46,6 +51,6 @@ export async function serveStatic(root: string, urlPath: string, response: Serve
     "content-security-policy": CSP,
     "cache-control": file.endsWith("index.html") ? "no-store" : "public, max-age=3600",
   });
-  createReadStream(file).pipe(response);
+  createReadStream(target).pipe(response);
   return true;
 }

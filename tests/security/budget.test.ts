@@ -152,3 +152,47 @@ test("T12/T13 a provider call that ignores abort keeps occupying capacity until 
     await settle(350);
   } finally { await app.close(); }
 });
+
+test("T13 retries never overlap unfinished provider work within the admitted runs", async () => {
+  const gates: Array<() => void> = [];
+  let active = 0;
+  let maximum = 0;
+  const transport: AgentTransport = () => {
+    active += 1;
+    maximum = Math.max(maximum, active);
+    return new Promise((resolve) => gates.push(() => { active -= 1; resolve({ value: null }); }));
+  };
+  const { orphanedProviderWork } = await import("../../server/security/providerWork.ts");
+  const app = await startApp({ transport, externalLoad: orphanedProviderWork,
+    admission: { maxConcurrentRuns: 2, maxRunsPerWindow: 50 },
+    limits: { perCallTimeoutMs: 30, totalDeadlineMs: 1_000 },
+  });
+  try {
+    await Promise.all([app.post(app.agentUrl, GOAL), app.post(app.extraPausedGame(), GOAL)]);
+    assert.ok(maximum <= 2, `actual unfinished provider work: ${maximum}`);
+    assert.equal(gates.length, 2, "no retry or fallback while each prior attempt still runs");
+    assert.equal((await app.post(app.extraPausedGame(), GOAL)).status, 503);
+  } finally {
+    gates.forEach((release) => release());
+    await settle(0);
+    await app.close();
+  }
+});
+
+test("T13 shop advice also avoids retrying a provider attempt that ignores cancellation", async () => {
+  const { createShopAdvisor } = await import("../../server/ai/shopAdvice.ts");
+  const { pausedGame } = await import("../support/agentFixtures.ts");
+  const { manager, id } = pausedGame(3);
+  const gates: Array<() => void> = [];
+  const advisor = createShopAdvisor(() => new Promise((resolve) => gates.push(() => resolve({ value: null }))), {
+    attemptTimeoutMs: 10, deadlineMs: 1_000, backoffScheduleMs: [0, 0, 0, 0, 0],
+  });
+  try {
+    assert.equal((await advisor.advise(manager, id)).status, "unavailable");
+    assert.equal(gates.length, 1, "one unfinished call; no overlapping retry/fallback");
+  } finally {
+    gates.forEach((release) => release());
+    await settle(0);
+    manager.close();
+  }
+});

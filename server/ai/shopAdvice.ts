@@ -268,10 +268,13 @@ async function runAttempt(transport: AdviceTransport, model: AdviceModel, contex
   if (externalSignal?.aborted) controller.abort();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let work: Promise<ProviderResponse> | undefined;
+  let settled = false;
   try {
     if (controller.signal.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
     work = transport(model, context, controller.signal);
-    return await Promise.race([
+    work.then(() => { settled = true; }, () => { settled = true; });
+    if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
+    const response = await Promise.race([
       work,
       new Promise<never>((_resolve, reject) => {
         controller.signal.addEventListener("abort", () => reject(
@@ -279,10 +282,13 @@ async function runAttempt(transport: AdviceTransport, model: AdviceModel, contex
         ), { once: true });
       }),
     ]);
-  } catch (error) {
-    if (work && controller.signal.aborted) adoptOrphanedProviderWork(work);
-    if (externalSignal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
     if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
+    return response;
+  } catch (error) {
+    const unfinished = work !== undefined && controller.signal.aborted && !settled;
+    if (unfinished) adoptOrphanedProviderWork(work!);
+    if (externalSignal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    if (controller.signal.aborted) throw new ProviderFailure(unfinished ? "terminal" : "transient", 408, undefined, "timeout");
     if (error instanceof ProviderFailure) throw error;
     throw new ProviderFailure("transient", undefined, undefined, "network");
   } finally {
