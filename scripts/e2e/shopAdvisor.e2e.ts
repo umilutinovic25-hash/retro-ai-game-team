@@ -285,8 +285,18 @@ async function main(): Promise<void> {
     });
 
     await check("C9", "A failed move request does not replace the active game status", async () => {
+      // Isolate network recovery from random obstacles or a natural collision during this check.
+      const { DEFAULT_CONFIG } = await import("../../src/game/snakeConfig.ts");
+      await page.route("**/api/games", (route) => route.continue({ postData: JSON.stringify({
+        config: { ...DEFAULT_CONFIG, startingSpeedMs: 1000, obstacleStartCount: 0, maxObstacles: 0, bonusChance: 0 },
+      }) }));
+      const created = page.waitForResponse((response) => response.url().endsWith("/api/games") && response.request().method() === "POST");
       await page.goto(webUrl);
       await page.waitForSelector('#server-connection[data-connection="online"]');
+      await page.unroute("**/api/games");
+      const { game } = await (await created).json() as { game: { config: { startingSpeedMs: number }; state: { obstacles: unknown[] } } };
+      assert.equal(game.config.startingSpeedMs, 1000, "the real server accepted the controlled timing fixture");
+      assert.deepEqual(game.state.obstacles, []);
       await page.keyboard.press("ArrowUp");
       await page.waitForFunction(() => document.querySelector("#status")?.textContent === "PLAYING", undefined, { timeout: 5000 });
       await page.waitForTimeout(250);
