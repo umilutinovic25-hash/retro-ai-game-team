@@ -46,9 +46,10 @@ Rezultati su dobijeni lokalno na macOS-u, Node 24.20.0, uz fake provider i Chrom
 | Dependency audit | 0 nalaza, runtime i dev |
 | Sintetička tajna | Nema je u testiranim model context/response/log putanjama ni u dist artefaktima |
 | Read-only i XSS | Stanje pre/posle isto; bez izvršenog markera i bez opasnog DOM-a |
+| Lična provera | Korisnik potvrdio da rade igranje, kontrole, zvuk, prodavnica i AI prikaz plana |
 | Dodatni izazov | 300 generisanih sekvenci, seed 20261027; allowlist/args/state invarijante prolaze |
 
-Isti pre/posle ulazi daju: strani Origin 201 -> 403, text/plain 201 -> 415, a osam uzastopnih zahteva troši 8 -> 5 provider poziva, uz tri rate-limit odbijanja. Već postojeće zaštite za veliko telo i dodatno maxSteps polje ostaju potvrđene. Početni source 05456e3 dodatno prolazi 175/175 testova i build sa sadašnjim zavisnostima; to nije rekonstrukcija originalnog instalacionog okruženja.
+Isti pre/posle ulazi: Origin 201 -> 403, text/plain 201 -> 415, provider pozivi 8 -> 5 uz tri rate-limit odbijanja. Postojeće zaštite velikog tela i maxSteps polja ostaju potvrđene. Početni source 05456e3 prolazi 175/175 i build sa sadašnjim zavisnostima; istorijsko okruženje nije rekonstruisano.
 
 Detaljni payload-i, brojači, test lokacije, poređenja i završna matrica svih zahteva nalaze se u [EVIDENCE_W08.md](../../../EVIDENCE_W08.md). Spec/plan/tasks su u [specs/005-secure-arcade](../../../specs/005-secure-arcade/spec.md). [Work log](../WORK_LOG.md) i [AI usage log](../AI_USAGE_LOG.md) čuvaju sled rada i AI pomoć. U paketu su izvorni kod i lokalni Git checkpoint za ponavljanje provera.
 
@@ -58,9 +59,12 @@ Claude Code i Codex korišćeni su za razradu, implementaciju, bezbednosni pregl
 
 Prihvaćene izmene proverene su negativnim i pozitivnim kontrolama, stvarnim alatima, stanjem pre/posle, browser DOM/CSP testovima i ponovljivim komandama. Odbijene su tvrdnje bez dokaza: timski doprinos, potpuna otpornost pravog modela i navodno proverena početna SDD hronologija.
 
-## 6. Ograničenja i predaja
+## 6. Opseg i završni status
 
-- Ovo je lokalni demo bez naloga; game ID nije autentikacija. Limiti su globalni, u jednom procesu. Nije potvrđena zaštita od svih volumetrijskih napada ili udaljene provider naplate posle abort-a.
-- Nisu rađeni W08 live pozivi, Windows provera ni ljudska provera fizičkog audio uređaja. Početni spec-before-code redosled nije nezavisno dokaziv iz Git istorije; naknadne red/green iteracije jesu zabeležene.
-- Rad u paru i zamena uloga nisu sprovedeni. Individualnu predaju, razumevanje i odbranu procenjuje nastavnik; AI i zeleni testovi ne zamenjuju tu proveru.
-- Paket je pripremljen za slanje: ovaj izveštaj, EVIDENCE_W08, kod, testovi, specifikacija, Git checkpoint, uputstvo i tekst poruke. Poruka nije poslata i grana nije objavljena u okviru ove pripreme.
+**Lična provera je potvrđena:** na pitanje o igranju, kontrolama, zvuku, prodavnici i AI planu odgovorio sam „da sve radi“. Zasebna vođena browser provera i screenshot dodatno potvrđuju prikaz validnog plana.
+
+Po mojoj odluci ostajemo na W08 fake-provider profilu. Windows i live pozivi nisu obavezni za zadatak. Lokalni/demo opseg, granice udaljene naplate i istorijske SDD proverljivosti detaljno su opisani u EVIDENCE_W08.
+
+Rad je individualan uz AI pomoć, bez timske zamene uloga. Nastavnik procenjuje format i odbranu.
+
+Spreman je osvežen paket: izveštaj, dokazi, kod/testovi, specifikacija, Git checkpoint, uputstvo, screenshot i tekst poruke. Ova priprema obuhvata samo paket za predaju.

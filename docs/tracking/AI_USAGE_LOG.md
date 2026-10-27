@@ -76,3 +76,9 @@ Do not use this log as a substitute for task evidence. Detailed test output belo
 - **Skills/context:** internal-comms general guidance, previous weekly reports and project template; pdf skill for ReportLab/PDF extraction/render review; existing W08 evidence/logs are the factual source. Audience/purpose/tone/format are already established by prior reports and course task. No extra interview or reader subagent needed.
 - **Output:** Serbian individual report, two-page PDF, solo evidence/tasks update, code checkpoints and self-contained local source/Git ZIP with prepared message. A fresh browser C9 failure was traced to random game termination; controlled timing/no-obstacle fixture preserves assertions, final 18/18 passes. Application runtime unchanged by that fixture fix.
 - **Verification/limits:** 225/225 tests, security 50/50 + build + 9/9 browser, typecheck/audit/scanner; PDF text and rendered pages verified. Code checkpoint cbc273c. Individual-format acceptance/defense belongs to the instructor; no email send or remote push.
+
+## 2026-10-27 — Confirmed hands-on verification and report v2
+
+- **Trusted new facts:** user explicitly confirmed all five requested functional areas work and opted out of live calls. Updated only supported claims; did not infer Windows testing or an instructor-approved pair exemption.
+- **Additional check:** computer-use browser UI on local production fake server confirmed paused shop/validated plan with unchanged actual points. Saved screenshot; observation is labeled agent-driven, never human review. Used purpose-built computer-use rather than Midscene, which would introduce a separate model key and automatically load .env.
+- **Output:** refreshed individual report/evidence and v2 submission artifacts; pdf/internal-comms workflows retained. Application code and existing test results unchanged. External sending/publication is separate from preparing the report and requires a clear destination/request.

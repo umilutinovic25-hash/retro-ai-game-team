@@ -19,3 +19,5 @@
 
 - [x] T-15 Full assignment completeness audit: map all required areas/invariants/T00–T17 and the optional challenge; add native production audio/Canvas proof, distinct two-container scope test, exact streaming size and real HTTP tool/provider counters. Final 225/225 full, 50/50 security, 18/18 W05 browser, 9/9 production browser. Preserve historical SDD chronology limitation in evidence §9.
 - [x] T-16 Local delivery checkpoint: runtime/tests committed as cbc273c; documentation checkpoint recorded in the submission manifest. Individual report, PDF, reproducible source/Git package and ready-to-copy message prepared locally. No remote push or email sending implied.
+
+- [x] T-17 Personal functional verification: user explicitly confirmed gameplay, controls, sound, shop and AI plan (H01). Added separate guided UI observation/screenshot V01. User explicitly chose fake-provider-only; no live run or Windows pass is claimed.

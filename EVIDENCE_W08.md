@@ -260,6 +260,14 @@ Sve završne unit/security/CSP provere prolaze. Prva ponovljena W05 browser prov
 
 Paket čuva i ograničenu lokalnu Git istoriju od baseline-a 05456e3, kako bi `security:prepost` radio posle raspakivanja, bez objavljivanja na GitHub-u. Nema node_modules, dist-a, .env fajlova ili kopiranja korisničkih credential store-ova. Izvori su iz eksplicitnog commit checkpoint-a; poruka nije poslata. Rad u paru je deklarisano neizvršen, a ne izmišljeno zatvoren zadatak.
 
+### Lična potvrda i dodatna vođena UI provera
+
+**H01 - korisnikova lična provera, 27.10.2026:** na eksplicitno pitanje „Da li si već lično proverio igru? ... igranje, kontrole, zvuk, prodavnica i AI prikaz plana“ korisnik je odgovorio **„da sve radi“**. To zatvara ranije nedostajuću korisničku potvrdu tih pet funkcija. Platforma te lične provere nije zasebno navedena; zato ne označavamo Windows kao testiran. Ovo je izjava korisnika, ne izmišljena laboratorijska mera kvaliteta fizičkog audio uređaja.
+
+**V01 - dodatna agentski vođena browser provera:** u vidljivom in-app browseru otvoren je stvarni dist sa aktivnom CSP preko `secureArcadeServer.ts`, isključivo fake provider. Posmatrani su READY, countdown, GAME OVER, restart, pauzirana prodavnica i završni plan. Posle PLAN WITH AI vidljivo je `PLAN: EXTRA XP · COST 1 PT · 0 PT LEFT.`; stvarni raspoloživi poeni ostaju 1, nivo 2, Extra XP 0/5. Dakle, predloženi plan nije sam izvršio kupovinu. Sačuvan je screenshot `provere/ai-plan-browser.jpg` u paketu v2. Ovo je agentska vizuelna provera i ne predstavlja se kao dodatni čovek ili zamena uloga u timu.
+
+**Izbor live profila:** korisnik je izričito odabrao **„Ne, zadrži fake-provider provere“**. Live poziv nije pokrenut. W08 dozvoljava fake provider i ne traži live pozive. Lokalni W08 smoke je zato završen, bez čekanja ključa ili nepotrebnog troška. Windows, javna autentikacija, distribuirani limiti i dokaz prekida udaljene naplate nisu naknadno proglašeni urađenim; to su granice/izvan definisanog lokalnog obima, a ne skriveni otvoreni kodni zadaci.
+
 ### Demo runbook — 8 minuta
 
 1. **0:00–1:00:** objasniti R2 i prikazati igru; S2 demonstrira stvarni produkcioni DOM/Canvas pod CSP-om. Za ručni lokalni prikaz pokrenuti `npm run build`, zatim `node --import tsx scripts/e2e/secureArcadeServer.ts`; otvoriti loopback URL koji server ispiše, započeti igru, pauzirati prodavnicu i zatražiti Strategist plan. Ovo je izolovani test fixture koji pri prvoj pauzi dodeljuje perk poen; nije produkcioni dokaz sticanja XP-a.
@@ -268,7 +276,7 @@ Paket čuva i ograničenu lokalnu Git istoriju od baseline-a 05456e3, kako bi `s
 4. **5:00–6:30:** `node --test tests/security/budget.test.ts`; pokazati 503/429, recovery i stubborn provider koji zadržava kapacitet posle timeout-a.
 5. **6:30–8:00:** `npm run security:prepost`; uporediti bar 3 reda iz §6, zatim S1/S4/S7 za CSP i sentinel. Završiti ograničenjima iz §9 i napomenom da je rad individualan.
 
-Komande pripremiti pre demonstracije; vremena su agenda, ne izmereno trajanje testova. Demo server ugasiti Ctrl-C. Lična demonstracija i individualna odbrana nisu zamenjene automatizovanim dokazom; zamena uloga u paru nije sprovedena jer je rad individualan.
+Komande pripremiti pre demonstracije; vremena su agenda, ne izmereno trajanje testova. Demo server ugasiti Ctrl-C. Lična funkcionalna provera je potvrđena u H01; nastavnikova individualna odbrana nije zamenjena automatizovanim dokazom; zamena uloga u paru nije sprovedena jer je rad individualan.
 
 ## 9. Zaključci i preostali rizik
 
@@ -277,7 +285,7 @@ Komande pripremiti pre demonstracije; vremena su agenda, ne izmereno trajanje te
 - **Resursi:** admission i rate su globalni i in-memory, jedan proces. Posao koji ignoriše abort broji se do završetka, ali aplikacija ne može prinudno zaustaviti upstream naplatu. Nikad-završen posao može zauvek držati kapacitet; sledeći test je takav fake uz operativni restart/izolaciju.
 - **Build fajlovi:** realpath štiti testirane symlink putanje, ali ne istovremenu neprijateljsku mutaciju lokalnog filesystem-a. Operator mora kontrolisati dist; test F7 ne dokazuje OS sandbox.
 - **Tajne/logovi:** sentinel dokazuje proverene putanje, ne opštu DLP zaštitu. Nema log retention/ACL implementacije. Sledeće za deljeni deployment: kontrola pristupa i provera rotacije/brisanja.
-- **Nije izvršeno:** live provider, Windows, veliki load, ljudska vizuelna provera/zvuk/swipe i individualna odbrana. Fake test ne dokazuje kvalitet ili prompt-injection otpornost pravog modela. HTTPS/HSTS van lokalnog HTTP opsega.
+- **Potvrđeno / van proverenog opsega:** korisnik je potvrdio igranje, kontrole, zvuk, prodavnicu i AI prikaz (H01); dodatna vizuelna provera je V01. Live provider je korisnik odbio; Windows, veliki load, poseban swipe scenario i održana individualna odbrana nisu testirani/potvrđeni. Fake test ne dokazuje kvalitet ili prompt-injection otpornost pravog modela. HTTPS/HSTS van lokalnog HTTP opsega.
 - Lokalni rekord ostaje nepotvrđen; oznaka ne dokazuje stvarno igranje. CSP stilovi sada rade sa CSSOM; nova inline style putanja traži novu proveru.
 - Nakon uvođenja naloga: prvo test A/B vlasništva na HTTP i tool granici, pa per-identity/shared rate limit. To danas nije postojeća privatna funkcija.
 
@@ -315,7 +323,7 @@ Komande pripremiti pre demonstracije; vremena su agenda, ne izmereno trajanje te
 | Najmanje 3 uporediva pre/posle scenarija | POTVRĐENO | Isti runner: foreign Origin, text/plain i 8 uzastopnih zahteva; postojeće dobre granice nisu uklanjane |
 | Jedna fake-first security komanda i 11 sekcija dokaza | POTVRĐENO | npm run test:security, README navigacija, ovaj dokument i reset koraci |
 | Doprinos i zahtev rada u paru | INDIVIDUALNI RAD POTVRĐEN; ODSTUPANJE OD FORMATA | Uroš je potvrdio samostalni W08 rad. Nema drugog člana ni zamene uloga; to nije predstavljeno kao timski dokaz ili odobren izuzetak |
-| Demo od 8 minuta i individualna provera | PRIPREMLJENO | §8 runbook; stvarna odbrana i ocenjivanje slede kod nastavnika, nisu unapred proglašeni položenim |
+| Lična funkcionalna provera i demo/odbrana | FUNKCIONALNOST POTVRĐENA; DEMO PRIPREMLJEN | Korisnik potvrdio svih pet funkcija (H01), dodatna vođena UI provera V01 i screenshot; §8 runbook. Nastavnikova odbrana nije unapred proglašena položenom |
 | Završni checkpoint i isporuka | PRIPREMLJENO LOKALNO | Kodni commit cbc273c; kompletan dokumentacioni SHA u manifestu. PDF, izvori, Git checkpoint i poruka pripremljeni u ZIP-u; slanje/remote push nisu izvršeni |
 | Jedan opcioni izazov (§9 zadatka) | IMPLEMENTIRANO I IZVRŠENO | Property-based tool granica, 300 sekvenci/seed; ne zamenjuje nastavnikovu procenu individualnog formata i odbranu |
 
