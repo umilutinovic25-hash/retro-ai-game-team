@@ -2,6 +2,16 @@
 
 Append one concise entry for each substantive implementation, review, or documentation task. Every entry links the prompt/specification that guided the work and the evidence used or created. If there was no standalone prompt artifact, say so. Keep results factual and do not rewrite history.
 
+## 2026-10-27 — W08 Secure the Arcade: harden the Shop Strategist flow
+
+- **Goal / acceptance:** W08 assignment (`weekly-assignment.md`): prove that browser and model cannot make the app read, execute, mutate or spend outside policy, with executable tests T00–T17 and `EVIDENCE_W08.md`.
+- **Prompt/evidence:** [Spec 005](../../specs/005-secure-arcade/spec.md), [plan](../../specs/005-secure-arcade/plan.md), [tasks](../../specs/005-secure-arcade/tasks.md); [EVIDENCE_W08.md](../../EVIDENCE_W08.md). No standalone prompt artifact.
+- **Starting state:** `05456e3`, branch `week08-secure-arcade`; baseline 175/175 tests, build OK, e2e 18/18, `npm audit --omit=dev` 0 (2 high dev-only before the update).
+- **Outcome:** new `server/security/` (admission control: 2 concurrent / 5 per 60 s; Host, Origin and Content-Type guards; early body cap; closed-field security log; static server with active CSP, nosniff, no-referrer via `npm run start:prod`); 23 new tests in `tests/security/` and 7 browser/production checks (`npm run test:e2e:security`); vite 6.4.3→6.4.5 and source-map-js 1.2.1→1.2.2 (no `--force`).
+- **Verification:** `npm test` 198/198, build, `test:e2e` 18/18, `test:e2e:security` 7/7, `security:scan`, `npm audit` 0.
+- **Limitations / next step:** global in-memory limits, no authentication, fake provider only, macOS only; second pair member must add and verify their own protection/negative test (tasks T-11).
+- **Second pass (same day):** `/security-review` and the Trail of Bits `insecure-defaults` audit found nothing over the bar; `sharp-edges` found 3 config footguns (limits silently disabled by `undefined`/`NaN`/`0`, dot files served from a misconfigured root, `null`/`*` origins) that are now rejected; allowed/completed runs are logged; seeded property test added (optional challenge). The leak test was renamed to `leakage.test.ts` because the pre-push scanner blocks tracked files named like secrets. `npm test` 204/204, `test:e2e` 18/18, `test:e2e:security` 7/7, `security:scan` passed.
+
 ## 2026-10-07 — Add AI Coach and VS AI rival
 
 - **Goal / acceptance:** add the optional server-owned VS AI snake rival and an on-demand Gemini coach after a completed run, per [Feature 005](../specs/005-ai-coach-and-rival.md).
