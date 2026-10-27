@@ -41,3 +41,38 @@ The older entries below have been normalized from the prior log. Prompt/context 
 | 32 | Prepare Week 05 learner report | [Week 05 Shop Strategist spec](../../specs/003-shop-agent/spec.md), Evidence 014 and 017, Week 04 report structure; no standalone report prompt | Drafted the Serbian weekly report and separated automated results, the live Gemini run, user contribution, and user-reported browser verification | Kept learner-facing claims factual and linked them to project records; no credentials or private model content included | Reviewed report against evidence and checked Markdown whitespace with `git diff --check` |
 
 Do not use this log as a substitute for task evidence. Detailed test output belongs in task evidence, and the work log links the relevant prompt/spec/evidence records. The current documentation change also added `tracking/evidence/EVIDENCE_TEMPLATE.md`.
+
+## 2026-10-27 — W08 evidence continuation (Codex)
+
+- **Request/context:** user approved continuing the interrupted W08 evidence work. Read project workflow/testing instructions, supplied assignment/template, W08 spec/tasks, implementation and existing tests; no standalone prompt artifact. Secret files excluded.
+- **Contribution:** corrected stale evidence, reorganized the existing document into the official 11-section Serbian template, added reproducibility/demo steps and preserved historical audit claims as attributed history. No application behavior changes.
+- **Verification:** reran typecheck, 207 unit/integration tests, build, 18 W05 browser checks, 8 security browser checks, baseline comparison, dependency audit and scanner; see [EVIDENCE_W08](../../EVIDENCE_W08.md) §5–§8.
+- **Human decision / boundary:** user authorized the continuation; final human review pending. Did not invent member contributions or close T-11; no commit/push performed.
+
+## 2026-10-27 — W08 adversarial boundary review (Codex)
+
+- **User request:** improve the assignment implementation using skills and suitable tools. Applied ai-security-boundary-review and ai-evidence-review; read their evidence-record reference, supplied assignment/template, project instructions, W08 spec, runtime source and tests. No subagents or external services used.
+- **Accepted findings/changes:** actual probes exposed late tool/final acceptance at total deadline, cancellation completion race, malformed WebSocket upgrade crash, and retries creating 12 pending calls under cap 2 (advice: 6). Added failing regressions before fixes, preserved expected outcomes and positive controls, fixed the owning runtime boundaries. Added two further edge regressions and marked dirty checkpoints in the comparison runner.
+- **Verification:** clean npm ci, 215/215 full tests, security wrapper 40/40 plus build and 8/8 browser, W05 browser 18/18, pre/post, typecheck, audit 0 and scanner pass. [Root evidence](../../EVIDENCE_W08.md) §6/§8 owns exact proof and scope.
+- **Human review:** user authorized improvements; no invented contributions or T-11 completion, no commit/push. Remote-provider cancellation/billing and human defense remain outside the fake test proof.
+
+## 2026-10-27 — Adjacent coach/static boundary follow-up (Codex)
+
+- **Request/context:** user asked for another targeted improvement pass. Continued ai-security-boundary-review and ai-evidence-review; inspected existing coach, transports, HTTP admission and static serving against the accepted coach and W08 specs. Preserved prior uncommitted work; excluded all real secret files. No standalone prompt artifact or subagents.
+- **Accepted findings:** five initial failing synthetic probes established coach pre-abort/ignored-abort timeout/cache defects and static symlink escape. A separate failing HTTP probe established rate-budget use before invalid coach context checks. Targeted runtime changes fix F5–F8; seven new tests cover both refusals and normal retry/cache/assets plus real HTTP recovery.
+- **Verification:** typecheck, 222/222 full tests, security wrapper 47/47 + build + 8/8 production browser, 18/18 W05 browser, pre/post and audit 0. [EVIDENCE_W08.md](../../EVIDENCE_W08.md) owns exact baseline, results and limits.
+- **Decision/limits:** user authorized another pass; human final review and pair contributions remain open. No broad refactor, new dependency/provider, real-secret inspection, live-provider call, commit or push.
+
+## 2026-10-27 — Full W08 requirement and evidence audit (Codex)
+
+- **Request/skills:** user requested a deep assessment of all requirements and work above the minimum. Applied ai-evidence-review and ai-security-boundary-review to the supplied assignment/template, current implementation/tests, spec/plan/tasks, README and Git history. No standalone prompt artifact.
+- **Contribution:** created an item-by-item completion matrix in EVIDENCE_W08.md §9; strengthened weak proof with real production audio/Canvas, distinct numerical container data isolation, streaming byte limits and direct provider/tool counters. Added README navigation. No new runtime feature, dependency or provider; no agents, external messaging or publishing.
+- **Verification:** 225/225 full tests, security wrapper 50/50 + build + 9/9 production browser, W05 browser 18/18, typecheck/prepost/scanner/diff checks pass and audit 0. Retrospective baseline source 05456e3 passes 175/175 + build with current dependencies.
+- **Honest gaps:** initial SDD chronology not independently demonstrated by Git, personal pair contributions/role swap/defense unconfirmed, final submission checkpoint not created. Did not fabricate these or predict a numerical grade. Human review remains pending; exact evidence/limits in [EVIDENCE_W08.md](../../EVIDENCE_W08.md).
+
+## 2026-10-27 — Individual W08 report and submission preparation
+
+- **Human clarification:** Uroš explicitly states all W08 work was individual, not team work. Updated only current W08 attribution; older weeks remain historical. No contribution attributed to Matija, no role swap or approved course exception invented.
+- **Skills/context:** internal-comms general guidance, previous weekly reports and project template; pdf skill for ReportLab/PDF extraction/render review; existing W08 evidence/logs are the factual source. Audience/purpose/tone/format are already established by prior reports and course task. No extra interview or reader subagent needed.
+- **Output:** Serbian individual report, two-page PDF, solo evidence/tasks update, code checkpoints and self-contained local source/Git ZIP with prepared message. A fresh browser C9 failure was traced to random game termination; controlled timing/no-obstacle fixture preserves assertions, final 18/18 passes. Application runtime unchanged by that fixture fix.
+- **Verification/limits:** 225/225 tests, security 50/50 + build + 9/9 browser, typecheck/audit/scanner; PDF text and rendered pages verified. Code checkpoint cbc273c. Individual-format acceptance/defense belongs to the instructor; no email send or remote push.
