@@ -65,11 +65,11 @@ test("HTTP API creates independent games and exposes server-owned actions", asyn
 test("HTTP API rejects malformed requests and missing game IDs safely", async () => {
   const app = await startServer();
   try {
-    const badJson = await fetch(`${app.baseUrl}/api/games`, { method: "POST", body: "{" });
+    const badJson = await fetch(`${app.baseUrl}/api/games`, { method: "POST", headers: { "content-type": "application/json" }, body: "{" });
     assert.equal(badJson.status, 400);
     assert.equal((await json(badJson)).error.code, "invalid_json");
 
-    const created = await fetch(`${app.baseUrl}/api/games`, { method: "POST", body: "{}" });
+    const created = await fetch(`${app.baseUrl}/api/games`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     const { game } = await json(created);
     const malformedPurchase = await fetch(`${app.baseUrl}/api/games/${game.id}/perks`, {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ perk: "unknown" }),
@@ -221,7 +221,7 @@ test("WebSocket sends initial and changed authoritative snapshots", async () => 
   const app = await startServer();
   let socket: WebSocket | undefined;
   try {
-    const response = await fetch(`${app.baseUrl}/api/games`, { method: "POST", body: "{}" });
+    const response = await fetch(`${app.baseUrl}/api/games`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     const { game } = await json(response);
     const address = new URL(app.baseUrl);
     socket = new WebSocket(`ws://${address.host}/api/games/${game.id}/events`);

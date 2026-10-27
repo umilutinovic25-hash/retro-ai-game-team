@@ -6,6 +6,7 @@ import type { GameSessionManager, GameSnapshot } from "../gameSession.ts";
 import { runAttempt, waitFor } from "./attempt.ts";
 import { buildPlanLine, validateAgentResult } from "./finalResult.ts";
 import { TOOLS, lookupTool, toolDescriptors } from "./tools.ts";
+import { resolveLimits } from "../security/resolveLimits.ts";
 import {
   DEFAULT_LIMITS, statusForStop,
   type AgentLimits, type AgentOutcome, type AgentStepRequest, type AgentTelemetrySink, type AgentTransport,
@@ -62,7 +63,7 @@ function readSnapshot(manager: GameSessionManager, gameId: string): GameSnapshot
 }
 
 export async function runAgent(input: RunAgentInput): Promise<AgentOutcome> {
-  const limits: AgentLimits = { ...DEFAULT_LIMITS, ...input.limits };
+  const limits = resolveLimits<AgentLimits>({ ...DEFAULT_LIMITS }, input.limits);
   const deps = input.deps ?? {};
   const now = deps.now ?? Date.now;
   const runId = (deps.runId ?? randomUUID)();

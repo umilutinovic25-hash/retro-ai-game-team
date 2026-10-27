@@ -6,6 +6,7 @@ import { createShopAgent, createJsonAgentTelemetrySink } from "./agent/shopAgent
 import { createGoogleAgentTransport } from "./agent/googleTransport.ts";
 import { createGameCoach } from "./ai/gameCoach.ts";
 import { createGoogleGameCoachTransport } from "./ai/gameCoachTransport.ts";
+import { createSecurityLog } from "./security/securityLog.ts";
 
 const port = Number(process.env.PORT ?? 3001);
 const apiKey = process.env.GEMINI_API_KEY;
@@ -16,7 +17,12 @@ const agent = createShopAgent(apiKey ? createGoogleAgentTransport(apiKey) : null
   deps: { telemetry: createJsonAgentTelemetrySink() },
 });
 const coach = createGameCoach(apiKey ? createGoogleGameCoachTransport(apiKey) : null);
-const server = createGameHttpServer(new GameSessionManager(), advisor, agent, coach);
+// --serve-dist: serve the production build (dist/) from this origin, with CSP and the other security headers.
+const staticRoot = process.argv.includes("--serve-dist") ? "dist" : undefined;
+const server = createGameHttpServer(new GameSessionManager(), advisor, agent, coach, {
+  securityLog: createSecurityLog(),
+  staticRoot,
+});
 
 server.listen(port, "127.0.0.1", () => {
   console.log(`RETRO SNAKE server listening on http://127.0.0.1:${port}`);
