@@ -227,3 +227,47 @@ test("T12 per-call timeout and total deadline: no new step after the deadline, n
   await new Promise((resolve) => setTimeout(resolve, 200));
   assert.equal(timed.result, undefined, "a late result is never promoted to success");
 });
+
+test("T06 final answer limits are enforced exactly at the boundary (positive at the limit, negative one past it)", async () => {
+  const { MAX_SUMMARY_CHARS, MAX_FINDING_CHARS, MAX_EVIDENCE } = await import("../../src/ai/shopAgent.ts");
+  const run = async (overrides: Record<string, unknown>) => {
+    const { manager, id } = pausedGame(3);
+    return runAgent({ manager, gameId: id, deps: FAST, transport: scripted([SHOP_STATE, evalPlan(["extra_xp"]), finalAnswer(validResult({ plan: ["extra_xp"], ...overrides }))]).transport });
+  };
+  const evidence = (finding: string, count = 1) => Array.from({ length: count }, () => ({ source: "get_shop_state", step: 1, finding }));
+  assert.equal((await run({ summary: "s".repeat(MAX_SUMMARY_CHARS), evidence: evidence("ok") })).status, "completed");
+  assert.equal((await run({ summary: "s".repeat(MAX_SUMMARY_CHARS + 1), evidence: evidence("ok") })).stopReason, "invalid_model_proposal");
+  assert.equal((await run({ evidence: evidence("f".repeat(MAX_FINDING_CHARS)) })).status, "completed");
+  assert.equal((await run({ evidence: evidence("f".repeat(MAX_FINDING_CHARS + 1)) })).stopReason, "invalid_model_proposal");
+  assert.equal((await run({ evidence: evidence("ok", MAX_EVIDENCE) })).status, "completed");
+  assert.equal((await run({ evidence: evidence("ok", MAX_EVIDENCE + 1) })).stopReason, "invalid_model_proposal");
+  assert.equal((await run({ summary: "line one\nline two", evidence: evidence("ok") })).stopReason, "invalid_model_proposal", "control characters");
+  // Evidence must cite a tool result of THIS run: wrong step, a tool that never ran, or a fabricated source.
+  for (const bad of [
+    [{ source: "get_shop_state", step: 2, finding: "x" }],
+    [{ source: "get_recent_runs", step: 1, finding: "x" }],
+    [{ source: "read_file", step: 1, finding: "x" }],
+  ]) assert.equal((await run({ evidence: bad })).stopReason, "invalid_model_proposal", JSON.stringify(bad));
+});
+
+test("D3 the model is offered only the fixed tool allowlist and a fixed provider endpoint; no URL, shell, file or model choice", async () => {
+  const { TOOL_NAMES } = await import("../../src/ai/shopAgent.ts");
+  const { ADVICE_MODELS } = await import("../../src/ai/shopAdvice.ts");
+  const { createGoogleAgentTransport } = await import("../../server/agent/googleTransport.ts");
+  const { GEMINI_ORIGIN } = await import("../../server/ai/geminiTransport.ts");
+  const { manager, id } = pausedGame(3);
+  const script = scripted([SHOP_STATE]);
+  await runAgent({ manager, gameId: id, transport: script.transport, deps: FAST });
+  const offered = script.calls[0].request.tools.map((tool) => tool.name);
+  assert.deepEqual(offered, [...TOOL_NAMES]);
+  assert.ok(ADVICE_MODELS.includes(script.calls[0].model), "the server chose an allowlisted model");
+  assert.deepEqual(Object.keys(script.calls[0].request).sort(), ["budget", "goal", "tools", "transcript"], "nothing else enters the model context");
+
+  const urls: string[] = [];
+  const fetchImpl = (async (url: string) => { urls.push(url); return new Response("{}", { status: 500 }); }) as unknown as typeof fetch;
+  const transport = createGoogleAgentTransport("synthetic-key", fetchImpl);
+  await assert.rejects(transport("gpt-x" as never, script.calls[0].request, new AbortController().signal), "a model outside the allowlist is refused before any request");
+  assert.equal(urls.length, 0);
+  await transport(ADVICE_MODELS[0], script.calls[0].request, new AbortController().signal).catch(() => null);
+  assert.ok(urls.every((url) => url.startsWith(`${GEMINI_ORIGIN}/`)), "fixed provider origin");
+});

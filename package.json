@@ -18,6 +18,7 @@
     "test:e2e:security": "tsx scripts/e2e/secureArcade.e2e.ts",
     "test:security": "npm run typecheck && node --test tests/security/*.test.ts && npm run build && npm run test:e2e:security",
     "security:scan": "node scripts/security/pre-push-scan.mjs --worktree",
+    "security:prepost": "tsx scripts/security/prepost.ts",
     "preview": "vite preview",
     "test:e2e": "tsx scripts/e2e/shopAdvisor.e2e.ts",
     "agent:live": "tsx scripts/live/agentSmoke.ts"
@@ -32,5 +33,10 @@
   "dependencies": {
     "tsx": "^4.23.15",
     "ws": "^8.22.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "fsevents": false
   }
 }

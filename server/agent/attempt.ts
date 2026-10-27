@@ -1,6 +1,7 @@
 import { ProviderFailure, type ProviderResponse } from "../ai/shopAdvice.ts";
 import type { AdviceModel } from "../../src/ai/shopAdvice.ts";
 import type { AgentStepRequest, AgentTransport } from "./types.ts";
+import { adoptOrphanedProviderWork } from "../security/providerWork.ts";
 
 /** Runs one provider attempt with a timeout and an external abort signal. */
 export async function runAttempt(
@@ -15,15 +16,18 @@ export async function runAttempt(
   externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
   if (externalSignal?.aborted) controller.abort();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let work: Promise<ProviderResponse> | undefined;
   try {
     if (controller.signal.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    work = transport(model, request, controller.signal);
     return await Promise.race([
-      transport(model, request, controller.signal),
+      work,
       new Promise<never>((_resolve, reject) => {
         controller.signal.addEventListener("abort", () => reject(new ProviderFailure("transient", 408, undefined, "timeout")), { once: true });
       }),
     ]);
   } catch (error) {
+    if (work && controller.signal.aborted) adoptOrphanedProviderWork(work);
     if (externalSignal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
     if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
     if (error instanceof ProviderFailure) throw error;

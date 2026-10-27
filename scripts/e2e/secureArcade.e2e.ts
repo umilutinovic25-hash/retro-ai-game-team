@@ -156,6 +156,37 @@ async function main(): Promise<void> {
       await context.unroute("**/api/games/*/shop-agent");
     });
 
+    await check("S3b", "T04 the other model-text paths (shop advice, post-run coach) also render hostile text as text", async () => {
+      const revisionOf = async (requestUrl: string) => (await (await fetch(`${url}/api/games/${requestUrl.split("/")[5]}`)).json() as { game: { revision: number } }).game.revision;
+      await context.route("**/api/games/*/shop-advice", async (route) => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ advice: {
+          status: "advice", revision: await revisionOf(route.request().url()), decision: "wait", reasonCode: "save_points",
+          message: XSS_IMG, model: "gemini-3.8-flash" } }) });
+      });
+      await page.evaluate(() => { delete (window as unknown as Record<string, unknown>).__w08XssMarker; });
+      await page.click("#shop-advice-button");
+      await page.waitForFunction(() => (document.querySelector("#shop-advice-output")?.textContent ?? "").includes("w08-missing.png"));
+      await page.waitForTimeout(300);
+      assert.equal(await page.locator("#shop-advice-output *").count(), 0);
+      await context.unroute("**/api/games/*/shop-advice");
+
+      await context.route("**/api/games/*/coach", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ coach: {
+        status: "coaching", headline: "<b>HI</b>", tip: XSS_IMG, model: "gemini-3.8-flash" } }) }));
+      const coachPage = await context.newPage();
+      await coachPage.goto(url);
+      await coachPage.waitForSelector('#server-connection[data-connection="online"]');
+      await coachPage.keyboard.press("ArrowUp");
+      await coachPage.waitForSelector("#coach-panel:not([hidden])", { timeout: 20_000 }); // the snake runs into the wall
+      await coachPage.click("#coach-button");
+      await coachPage.waitForFunction(() => (document.querySelector("#coach-output")?.textContent ?? "").includes("w08-missing.png"));
+      await coachPage.waitForTimeout(300);
+      assert.equal(await coachPage.evaluate(() => (window as unknown as Record<string, unknown>).__w08XssMarker), undefined);
+      assert.equal(await coachPage.locator("#coach-panel img, #coach-panel b").count(), 0, "coach headline/tip markup stays text");
+      assert.equal(await page.evaluate(() => (window as unknown as Record<string, unknown>).__w08XssMarker), undefined);
+      await coachPage.close();
+      await context.unroute("**/api/games/*/coach");
+    });
+
     await check("S4", "the CSP itself blocks an inline and an external script that would otherwise run", async () => {
       await page.evaluate(() => { (window as unknown as { __violations: string[] }).__violations.length = 0; });
       const before = probeHits;
@@ -195,6 +226,8 @@ async function main(): Promise<void> {
       await openShop(page, url);
       assert.equal(await page.locator('img[src="/w08-missing.png"]').count(), 0);
       assert.equal(await page.evaluate(() => (window as unknown as Record<string, unknown>).__w08XssMarker), undefined);
+      assert.equal(await page.textContent("#best-unverified"), "LOCAL", "the local best score is labelled as unverified");
+      assert.match((await page.textContent("#records-unverified")) ?? "", /NOT VERIFIED BY THE SERVER/);
       await page.click("#shop-agent-button");
       await page.waitForFunction(() => /PLAN:/.test(document.querySelector("#shop-agent-output")?.textContent ?? ""));
       assert.ok(requests.includes('{"goal":"plan_next_purchases"}'), "the agent request carries only the fixed goal");

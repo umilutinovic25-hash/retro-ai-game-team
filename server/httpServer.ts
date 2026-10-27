@@ -7,6 +7,7 @@ import { AGENT_GOAL } from "../src/ai/shopAgent.ts";
 import { createShopAgent, type ShopAgent } from "./agent/shopAgent.ts";
 import { createGameCoach, type GameCoach } from "./ai/gameCoach.ts";
 import { createAdmissionControl, type AdmissionControl } from "./security/admission.ts";
+import { orphanedProviderWork } from "./security/providerWork.ts";
 import { declaredLength, hasJsonContentType, isAllowedHost, isAllowedOrigin } from "./security/guards.ts";
 import { SECURITY_LIMITS } from "./security/limits.ts";
 import { createSecurityLog, newCorrelationId, type ReasonCode, type SecurityLog } from "./security/securityLog.ts";
@@ -253,7 +254,7 @@ export function createGameHttpServer(
   }
   if (options.staticRoot !== undefined && options.staticRoot.trim() === "") throw new Error("staticRoot must name the build directory.");
   const security: Security = {
-    admission: options.admission ?? createAdmissionControl(),
+    admission: options.admission ?? createAdmissionControl(undefined, Date.now, orphanedProviderWork),
     log: options.securityLog ?? createSecurityLog(),
     allowedOrigins: options.allowedOrigins ?? [],
     staticRoot: options.staticRoot,

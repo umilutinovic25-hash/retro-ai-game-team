@@ -20,8 +20,8 @@
             <span>SCORE</span>
             <strong id="score">0</strong>
           </div>
-          <div class="stat best-panel">
-            <span>BEST</span>
+          <div class="stat best-panel" title="Stored in this browser only; not verified by the server.">
+            <span>BEST <small class="unverified" id="best-unverified">LOCAL</small></span>
             <strong id="best-score">0</strong>
           </div>
         </div>
@@ -149,6 +149,7 @@
     <dialog id="records-dialog" class="records" aria-labelledby="records-title">
       <form method="dialog">
         <h2 id="records-title">★ HALL OF FAME</h2>
+        <p id="records-unverified" class="records-unverified">LOCAL TO THIS BROWSER · NOT VERIFIED BY THE SERVER</p>
         <ol id="records-list" class="records-list"></ol>
         <p id="records-empty" class="records-empty">NO SCORES YET — GO SET ONE.</p>
         <dl class="stats">

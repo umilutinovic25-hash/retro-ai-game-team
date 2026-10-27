@@ -13,7 +13,7 @@ const REQUIRED = [
   "shop-luck-value", "shop-luck-cubes", "buy-luck", "shop-extra-xp-value", "shop-extra-xp-cubes", "buy-extra-xp",
   "shop-life-value", "shop-life-cubes", "buy-extra-life", "shop-advice-output", "shop-advice-button",
   "shop-agent-output", "shop-agent-button", "shop-message", "pause", "shop-toggle", "restart", "mute",
-  "colorblind", "records-open", "records-dialog", "records-list", "records-empty",
+  "colorblind", "records-open", "records-dialog", "records-list", "records-empty", "records-unverified", "best-unverified",
   "stat-games", "stat-food", "stat-length", "stat-combo",
 ];
 

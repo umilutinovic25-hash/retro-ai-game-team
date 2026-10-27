@@ -120,3 +120,35 @@ test("T17 chain HTTP -> admission -> agent -> provider: a browser disconnect abo
     assert.equal(after.status, 200, "capacity is available again");
   } finally { await app.close(); }
 });
+
+test("T12/T13 a provider call that ignores abort keeps occupying capacity until it really settles", async () => {
+  const { orphanedProviderWork } = await import("../../server/security/providerWork.ts");
+  let finished = 0;
+  // Ignores the AbortSignal on purpose and answers late, like a misbehaving SDK or proxy.
+  const stubborn: AgentTransport = () => new Promise((resolve) => setTimeout(() => {
+    finished += 1;
+    resolve({ value: { kind: "tool_request", tool: "get_shop_state", arguments: {} } });
+  }, 300));
+  const app = await startApp({
+    transport: stubborn, externalLoad: orphanedProviderWork,
+    admission: { maxConcurrentRuns: 1, maxRunsPerWindow: 50 },
+    limits: { perCallTimeoutMs: 30, maxProviderAttempts: 1 },
+  });
+  try {
+    const first = await app.post(app.agentUrl, GOAL);
+    assert.equal(first.status, 200, "the run itself ends after its per-call timeout");
+    assert.equal(((await first.json()) as { run: { status: string } }).run.status, "failed");
+    assert.equal(app.admission.active, 0, "the run released its slot");
+    assert.equal(orphanedProviderWork(), 1, "but its provider call is still running");
+    const blocked = await app.post(app.extraPausedGame(), GOAL);
+    assert.equal(blocked.status, 503, "unfinished background work still counts against the cap");
+    await settle(350);
+    assert.equal(finished, 1);
+    assert.equal(orphanedProviderWork(), 0);
+    const after = app.post(app.extraPausedGame(), GOAL);
+    await settle(20);
+    assert.equal(app.admission.active, 1, "capacity is available again once the work settled");
+    await after;
+    await settle(350);
+  } finally { await app.close(); }
+});

@@ -20,9 +20,10 @@ export async function startApp(options: {
   limits?: Partial<AgentLimits>;
   admission?: Partial<SecurityLimits>;
   now?: () => number;
+  externalLoad?: () => number;
 }) {
   const { manager, id } = pausedGame(options.points ?? 3);
-  const admission = createAdmissionControl(options.admission, options.now);
+  const admission = createAdmissionControl(options.admission, options.now, options.externalLoad);
   const securityLines: string[] = [];
   const telemetryLines: string[] = [];
   const telemetry: AgentTelemetrySink = (event) => telemetryLines.push(JSON.stringify(event));

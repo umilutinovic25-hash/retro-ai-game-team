@@ -19,6 +19,8 @@ export type AdmissionControl = {
 export function createAdmissionControl(
   limits: Partial<SecurityLimits> = {},
   now: () => number = Date.now,
+  /** Work that still occupies capacity without holding a slot, e.g. orphaned provider calls. */
+  externalLoad: () => number = () => 0,
 ): AdmissionControl {
   const { maxConcurrentRuns, maxRunsPerWindow, windowMs } = resolveLimits<SecurityLimits>({ ...SECURITY_LIMITS }, limits);
   let active = 0;
@@ -28,7 +30,7 @@ export function createAdmissionControl(
     tryAcquire(): Admission {
       const current = now();
       accepted = accepted.filter((time) => current - time < windowMs);
-      if (active >= maxConcurrentRuns) return { ok: false, reason: "CAPACITY_EXCEEDED", retryAfterSeconds: 1 };
+      if (active + externalLoad() >= maxConcurrentRuns) return { ok: false, reason: "CAPACITY_EXCEEDED", retryAfterSeconds: 1 };
       if (accepted.length >= maxRunsPerWindow) {
         const wait = Math.ceil((accepted[0] + windowMs - current) / 1000);
         return { ok: false, reason: "RATE_LIMITED", retryAfterSeconds: Math.max(1, wait) };

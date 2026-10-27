@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { adoptOrphanedProviderWork } from "../security/providerWork.ts";
 import type { GameSnapshot } from "../../src/game/gameProtocol.ts";
 import { getLevelForXp } from "../../src/game/snakeEngine.ts";
 import {
@@ -266,10 +267,12 @@ async function runAttempt(transport: AdviceTransport, model: AdviceModel, contex
   externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
   if (externalSignal?.aborted) controller.abort();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let work: Promise<ProviderResponse> | undefined;
   try {
     if (controller.signal.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
+    work = transport(model, context, controller.signal);
     return await Promise.race([
-      transport(model, context, controller.signal),
+      work,
       new Promise<never>((_resolve, reject) => {
         controller.signal.addEventListener("abort", () => reject(
           new ProviderFailure("transient", 408, undefined, "timeout"),
@@ -277,6 +280,7 @@ async function runAttempt(transport: AdviceTransport, model: AdviceModel, contex
       }),
     ]);
   } catch (error) {
+    if (work && controller.signal.aborted) adoptOrphanedProviderWork(work);
     if (externalSignal?.aborted) throw new ProviderFailure("terminal", undefined, undefined, "cancelled");
     if (controller.signal.aborted) throw new ProviderFailure("transient", 408, undefined, "timeout");
     if (error instanceof ProviderFailure) throw error;
